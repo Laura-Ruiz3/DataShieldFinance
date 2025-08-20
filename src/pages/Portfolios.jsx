@@ -8,6 +8,9 @@ import { Box, Button, CircularProgress, Container, Dialog, DialogActions, Dialog
 import FolderDeleteIcon from '@mui/icons-material/FolderDelete';
 import CreateNewFolderIcon from '@mui/icons-material/CreateNewFolder';
 import { red } from '@mui/material/colors';
+import CreateAssetButton from "../components/CreateAssetButton";
+import DeleteAssetButton from "../components/DeleteAssetButton";
+
 
 import CreatePortfolioButton from "../components/createPortfolioButton";
 
@@ -188,14 +191,44 @@ export default function Portfolios() {
               <Grid sx={{borderColor: "blue", border: '2px solid white', display: "flex"}} size={6} justifyContent="center">
                 <Typography sx={{fontWeight: "bold", fontSize: "1.5rem", color: "#BB77FF"}}>My portfolio</Typography>
               </Grid>
-              <Grid sx={{borderColor: "blue", border: '2px solid white', display: "flex", justifyContent: 'center'}} size={6}>
-                  <Button sx={{color: "white", ':hover': {bgcolor: 'blue', color: 'white'}}}>
-                    <CreateNewFolderIcon />
-                  </Button>
-                  <Button sx={{color: "red", ':hover': {bgcolor: 'red', color: 'white'}}}>
-                    <FolderDeleteIcon/>
-                  </Button>    
+              <Grid
+                sx={{ borderColor: "blue", border: "2px solid white", display: "flex", justifyContent: "center" }}
+                size={6}
+              >
+                <CreateAssetButton
+                  onCreated={() => setToast({ open: true, msg: "Asset created", severity: "success" })}
+                  buttonProps={{
+                    sx: {
+                      color: "white",
+                      ":hover": { bgcolor: "blue", color: "white" },
+                      transition: "transform 120ms ease, background-color 120ms ease",
+                      transform: "translateZ(0)",
+                      willChange: "transform",
+                      "&:hover": { transform: "translateY(-1px)" },
+                      "&:active": { transform: "translateY(0px) scale(0.98)" }
+                    },
+                    children: <CreateNewFolderIcon />
+                  }}
+                />
+
+                <DeleteAssetButton
+                  portfolioId={selected}
+                  onDeleted={() => setToast({ open: true, msg: "Asset deleted", severity: "success" })}
+                  buttonProps={{
+                    sx: {
+                      color: "red",
+                      ":hover": { bgcolor: "red", color: "white" },
+                      transition: "transform 120ms ease, background-color 120ms ease",
+                      transform: "translateZ(0)",
+                      willChange: "transform",
+                      "&:hover": { transform: "translateY(-1px)" },
+                      "&:active": { transform: "translateY(0px) scale(0.98)" }
+                    },
+                    children: <FolderDeleteIcon />
+                  }}
+                />
               </Grid>
+
               <Grid container>
               <Grid item xs={12}>
                 <Card>
