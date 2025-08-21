@@ -14,6 +14,7 @@ import {
   Typography,
   Alert,
 } from "@mui/material";
+import Tooltip from "@mui/material/Tooltip";
 import FolderDeleteIcon from "@mui/icons-material/FolderDelete";
 import CreateNewFolderIcon from "@mui/icons-material/CreateNewFolder";
 
@@ -23,6 +24,8 @@ import CreatePortfolioButton from "../components/createPortfolioButton";
 
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
+
+
 
 export default function Portfolios() {
   // Responsive helpers
@@ -35,11 +38,15 @@ export default function Portfolios() {
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
 
-  // ✅ Dynamic title (must be AFTER state declarations)
+  // Dynamic title
   const selectedPortfolio = portfolios.find((p) => p.portfolio_id === selected);
   const portfolioTitle = selectedPortfolio?.name || "My Portfolio";
 
-  // Dummy chart data for the middle card
+  const chartRef2 = useRef(null);
+  const chartInstanceRef2 = useRef(null);
+
+
+  // Dummy chart data (placeholder)
   const rows = DUMMY.holdingsByPortfolio[selected] ?? [];
   const series = useMemo(() => {
     const byType = rows.reduce((m, r) => {
@@ -81,7 +88,7 @@ export default function Portfolios() {
     fetchPortfolios();
   }, []);
 
-  // Flowbite Chart.js demo
+  // Flowbite Chart.js demo (placeholder)
   const chartRef = useRef(null);
   const chartInstanceRef = useRef(null);
 
@@ -203,114 +210,178 @@ export default function Portfolios() {
           </Grid>
         </Grid>
       )}
-
-      {/* ===== MAIN 3-COLUMN LAYOUT (responsive) ===== */}
-      <Grid container spacing={2}>
-        {/* LEFT: green card */}
-        <Grid item xs={12} md={4}>
-          <Card sx={{ p: 2, bgcolor: "#00674F", color: "#FFFFFF" }}>
-            {/* Header bar pinned to the top */}
-            <Box
+        {/* ===== MAIN LAYOUT: 2 columns; right card spans full height ===== */}
+        <Box
+          sx={{
+            display: "grid",
+            gap: 2,
+            gridTemplateColumns: {
+              xs: "1fr",      // stacked on mobile
+              md: "5fr 7fr",  // 70/30 split on md+
+            },
+            // two rows on md+: row 1 = Portfolio, row 2 = Stocks.
+            gridTemplateRows: {
+              xs: "auto",
+              md: "auto auto",
+            },
+            alignItems: "stretch",
+          }}
+        >
+          {/* LEFT-TOP: Portfolio card */}
+          <Box sx={{ minWidth: 0, overflow: "hidden", gridColumn: "1", gridRow: { xs: "auto", md: "1" } }}>
+            <Card
               sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 2,
-                pb: 1.5,
-                borderBottom: "1px dashed rgba(255,255,255,0.25)",
+                p: 2,
+                bgcolor: "#00674F",
+                color: "#FFFFFF",
+                minHeight: 280,
+                width: "100%",
+                maxWidth: "100%",
+                overflow: "hidden",
+                boxSizing: "border-box",
               }}
             >
-              {/* Dynamic title from selected portfolio */}
-              <Typography
+              {/* Header: clamped title + actions */}
+              <Box
                 sx={{
-                  fontWeight: 800,
-                  fontSize: { xs: "1.35rem", sm: "1.55rem", md: "1.85rem" },
-                  color: "#BB77FF",
-                  textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
-                  letterSpacing: "0.5px",
-                  lineHeight: 1.1,
-                  whiteSpace: "nowrap",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  pb: 1.5,
+                  borderBottom: "1px dashed rgba(255,255,255,0.25)",
+                  width: "100%",
+                  maxWidth: "100%",
+                  minWidth: 0,
                   overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  maxWidth: { xs: "60%", md: "70%" }, // avoid overlapping the buttons
                 }}
-                title={portfolioTitle}
               >
-                {portfolioTitle}
-              </Typography>
+                <Tooltip title={portfolioTitle}>
+                <Typography
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: "1rem", sm: "1.3rem", md: "1.5rem" },
+                    color: "#BB77FF",
+                    textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
+                    lineHeight: 1.2,
+                    flexGrow: 1,
+                    minWidth: 0,
+                    whiteSpace: { xs: "normal", md: "nowrap" }, // wrap on mobile, ellipsis on desktop
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                  }}
+                >
+                  {portfolioTitle}
+                </Typography>
+              </Tooltip>
 
-              {/* Create / Delete asset buttons */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <CreateAssetButton
-                  onCreated={() => setToast({ open: true, msg: "Asset created", severity: "success" })}
-                  buttonProps={{
-                    variant: "text",
-                    size: isMobile ? "small" : "medium",
-                    sx: {
-                      color: "white",
-                      ":hover": { bgcolor: "blue", color: "white" },
-                      transition: "transform 120ms ease, background-color 120ms ease",
-                      transform: "translateZ(0)",
-                      willChange: "transform",
-                      "&:hover": { transform: "translateY(-1px)" },
-                      "&:active": { transform: "translateY(0px) scale(0.98)" },
-                    },
-                    children: <CreateNewFolderIcon fontSize={isMobile ? "small" : "medium"} />,
-                  }}
-                />
-                <DeleteAssetButton
-                  portfolioId={selected}
-                  onDeleted={() => setToast({ open: true, msg: "Asset deleted", severity: "success" })}
-                  buttonProps={{
-                    variant: "text",
-                    size: isMobile ? "small" : "medium",
-                    sx: {
-                      color: "red",
-                      ":hover": { bgcolor: "red", color: "white" },
-                      transition: "transform 120ms ease, background-color 120ms ease",
-                      transform: "translateZ(0)",
-                      willChange: "transform",
-                      "&:hover": { transform: "translateY(-1px)" },
-                      "&:active": { transform: "translateY(0px) scale(0.98)" },
-                    },
-                    children: <FolderDeleteIcon fontSize={isMobile ? "small" : "medium"} />,
-                  }}
-                />
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+                  <CreateAssetButton
+                    onCreated={() => setToast({ open: true, msg: "Asset created", severity: "success" })}
+                    buttonProps={{
+                      variant: "text",
+                      size: isMobile ? "small" : "medium",
+                      sx: {
+                        color: "white",
+                        ":hover": { bgcolor: "blue", color: "white" },
+                        transition: "transform 120ms ease, background-color 120ms ease",
+                        transform: "translateZ(0)",
+                        willChange: "transform",
+                        "&:hover": { transform: "translateY(-1px)" },
+                        "&:active": { transform: "translateY(0px) scale(0.98)" },
+                      },
+                      children: <CreateNewFolderIcon fontSize={isMobile ? "small" : "medium"} />,
+                    }}
+                  />
+                  <DeleteAssetButton
+                    portfolioId={selected}
+                    onDeleted={() => setToast({ open: true, msg: "Asset deleted", severity: "success" })}
+                    buttonProps={{
+                      variant: "text",
+                      size: isMobile ? "small" : "medium",
+                      sx: {
+                        color: "red",
+                        ":hover": { bgcolor: "red", color: "white" },
+                        transition: "transform 120ms ease, background-color 120ms ease",
+                        transform: "translateZ(0)",
+                        willChange: "transform",
+                        "&:hover": { transform: "translateY(-1px)" },
+                        "&:active": { transform: "translateY(0px) scale(0.98)" },
+                      },
+                      children: <FolderDeleteIcon fontSize={isMobile ? "small" : "medium"} />,
+                    }}
+                  />
+                </Box>
               </Box>
-            </Box>
 
-            {/* Content area below the header (grows independently) */}
-            <Box sx={{ mt: 2 }}>
-              <Card>
-                <CardContent>
-                  {selected ? (
-                    <PortfolioTable portfolioId={selected} />
-                  ) : (
-                    <Typography sx={{ p: 2, textAlign: "center" }}>
-                      Select a portfolio to view holdings
-                    </Typography>
-                  )}
-                </CardContent>
-              </Card>
-            </Box>
-          </Card>
-        </Grid>
+              {/* Fixed-height, scrollable table */}
+              <Box sx={{ mt: 2, height: { xs: 260, md: 320 }, overflowY: "auto" }}>
+                <Box sx={{ width: "100%", overflowX: "auto" }}>
+                  <Card sx={{ width: "100%", maxWidth: "100%", overflow: "hidden" }}>
+                    <CardContent sx={{ p: 0 }}>
+                      {selected ? (
+                        <PortfolioTable portfolioId={selected} />
+                      ) : (
+                        <Typography sx={{ p: 2, textAlign: "center" }}>
+                          Select a portfolio to view holdings
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Box>
+              </Box>
+            </Card>
+          </Box>
 
-        {/* MIDDLE: chart */}
-        <Grid item xs={12} md={4}>
-          <Card title="Graph (dummy)">
-            <div className="mt-6 bg-white rounded-lg shadow p-4 flex flex-col items-center w-full">
-              <h3 className="text-lg font-semibold mb-4">Portfolio Allocation</h3>
-              <canvas ref={chartRef} className="w-full max-w-xs" />
-            </div>
-          </Card>
-        </Grid>
+          {/* LEFT-BOTTOM: Stocks card */}
+          <Box sx={{ gridColumn: "1", gridRow: { xs: "auto", md: "2" }, minWidth: 0 }}>
+            <StocksSidebar />
+          </Box>
 
-        {/* RIGHT: stocks sidebar */}
-        <Grid item xs={12} md={4}>
-          <StocksSidebar />
-        </Grid>
-      </Grid>
+          {/* RIGHT: Chart — spans both rows on md+ and fills remaining height */}
+          <Box
+            sx={{
+              gridColumn: { xs: "1", md: "2" },
+              gridRow: { xs: "auto", md: "1 / span 2" },
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+          {/* RIGHT COLUMN: two charts, each fills 50% of the column height */}
+          <Grid
+            item
+            xs={12}
+            md={5}
+            sx={{
+              display: "grid",
+              gap: 2,
+              gridTemplateRows: { xs: "auto auto", md: "1fr 1fr" }, // ⬅️ equal split on md+
+              minHeight: 0, // allow children to size correctly
+            }}
+          >
+            {/* Chart 1 */}
+            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <Box sx={{ pb: 1, borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                <Typography sx={{ fontWeight: 600 }}>Portfolio Allocation</Typography>
+              </Box>
+              <Box sx={{ flexGrow: 1, position: "relative", minHeight: 0 }}>
+                <canvas ref={chartRef} style={{ position: "absolute", inset: 0 }} />
+              </Box>
+            </Card>
+
+            {/* Chart 2 */}
+            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0 }}>
+              <Box sx={{ pb: 1, borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
+                <Typography sx={{ fontWeight: 600 }}>Holdings Breakdown</Typography>
+              </Box>
+              <Box sx={{ flexGrow: 1, position: "relative", minHeight: 0 }}>
+                <canvas ref={chartRef2} style={{ position: "absolute", inset: 0 }} />
+              </Box>
+            </Card>
+          </Grid>
+
+          </Box>
+        </Box>
+
 
       {/* global toast */}
       <Snackbar
