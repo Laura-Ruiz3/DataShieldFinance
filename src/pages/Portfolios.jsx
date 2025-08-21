@@ -83,6 +83,44 @@ export default function Portfolios() {
     }
   };
 
+
+  const handleDelete = async (portfolioId) => {
+  if (!portfolioId) return;
+  
+  try {
+    console.log(`Attempting to delete portfolio ${portfolioId}`);
+    
+    // Use absolute URL with port 4000
+      const res = await fetch(`/api/portfolios/user/2/portfolio/${portfolioId}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+    
+    if (!res.ok) throw new Error(`API ${res.status}`);
+    
+    setToast({ 
+      open: true, 
+      msg: "Portfolio deleted successfully", 
+      severity: "success" 
+    });
+    
+    if (selected === portfolioId) {
+      setSelected(null);
+    }
+    
+    await fetchPortfolios();
+  } catch (err) {
+    console.error("Delete error:", err);
+    setToast({ 
+      open: true, 
+      msg: `Error deleting portfolio: ${err.message}`, 
+      severity: "error" 
+    });
+  }
+};
+
   // Initial load
   useEffect(() => {
     fetchPortfolios();
