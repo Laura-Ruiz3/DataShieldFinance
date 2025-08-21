@@ -23,7 +23,7 @@ export default function Home() {
     <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] gap-4">
       <Card title="Welcome" right={<span className="text-xs text-neutral-500">Explore your portfolio</span>}>
         <p className="text-sm text-neutral-600">
-          Go to <strong>Portfolios</strong> to review your positions. On the Home page, you'll find Mexican financial news and a dummy watchlist.
+          Go to <strong>Portfolios</strong> to review your positions. On the Home page, you'll find financial news and tips.
         </p>
         <div> </div>
         <div className='py-5'> 
