@@ -1,5 +1,5 @@
-
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
+import { Box, Container, Typography } from '@mui/material'
 import Home from './Home'
 import Portfolios from './Portfolios'
 import Navbar from '../components/Navbar'
@@ -10,20 +10,52 @@ export default function AppRouter() {
   const active = location.pathname === '/portfolios' ? 'portfolio' : 'home'
 
   return (
-    <div className="min-h-dvh bg-neutral-50">
+    <Box
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: '#f5fff7', // Light green-white base
+        backgroundImage: 'linear-gradient(to bottom, #ffffff, #f0fff5, #e8f8f0)',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
       <Navbar
         active={active}
         onNavigate={(p) => navigate(p === 'portfolio' ? '/portfolios' : '/')}
       />
-      <main className="max-w-6xl mx-auto px-4 py-6">
+      <Container 
+        component="main" 
+        maxWidth="lg"
+        sx={{ 
+          py: 3, 
+          px: 2, 
+          flexGrow: 1,
+          backgroundColor: 'rgba(255, 255, 255, 0.7)',
+          borderRadius: 2,
+          my: 2
+        }}
+      >
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/portfolios" element={<Portfolios />} />
         </Routes>
-      </main>
-      <footer className="max-w-6xl mx-auto px-4 py-6 text-xs text-neutral-500">
-        © DataShield Finance version 0
-      </footer>
-    </div>
+      </Container>
+      <Container 
+        component="footer" 
+        maxWidth="lg"
+        sx={{ 
+          py: 3, 
+          px: 2,
+          borderTop: '1px solid #e0efe0' 
+        }}
+      >
+        <Typography 
+          variant="caption" 
+          color="#0B5D32"
+        >
+          © DataShield Finance version 0
+        </Typography>
+      </Container>
+    </Box>
   )
 }

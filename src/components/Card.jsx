@@ -1,12 +1,39 @@
+import { Card as MuiCard, CardContent, Box, Typography } from '@mui/material';
 
 export default function Card({ title, children, right }) {
   return (
-    <section className="bg-white rounded-2xl shadow-sm border p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-neutral-800">{title}</h3>
+    <MuiCard 
+      sx={{ 
+        borderRadius: 4,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        border: '1px solid #e0e0e0',
+        p: 2
+      }}
+    >
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          mb: 1.5
+        }}
+      >
+        {typeof title === 'string' ? (
+          <Typography 
+            variant="h6" 
+            component="div" 
+            sx={{ fontWeight: 600, color: '#333' }}
+          >
+            {title}
+          </Typography>
+        ) : (
+          title
+        )}
         {right}
-      </div>
-      {children}
-    </section>
-  )
+      </Box>
+      <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>
+        {children}
+      </CardContent>
+    </MuiCard>
+  );
 }
