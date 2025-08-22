@@ -40,6 +40,8 @@ CREATE TABLE assets (
     asset_type ENUM('stock','bond','crypto','fund','cash') NOT NULL,
     currency VARCHAR(3) NOT NULL DEFAULT 'USD',
     sector VARCHAR(50),
+    price DECIMAL(18,6) DEFAULT 0.00,
+    last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     UNIQUE(symbol, currency)
 );

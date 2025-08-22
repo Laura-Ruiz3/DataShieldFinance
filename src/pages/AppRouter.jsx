@@ -2,6 +2,7 @@ import { Routes, Route, useNavigate, useLocation } from 'react-router-dom'
 import { Box, Container, Typography } from '@mui/material'
 import Home from './Home'
 import Portfolios from './Portfolios'
+import Footer from '../components/Footer';
 import Navbar from '../components/Navbar'
 
 export default function AppRouter() {
@@ -49,13 +50,14 @@ export default function AppRouter() {
           borderTop: '1px solid #e0efe0' 
         }}
       >
-        <Typography 
+        {/* <Typography 
           variant="caption" 
           color="#0B5D32"
         >
           © DataShield Finance version 0
-        </Typography>
+        </Typography> */}        
       </Container>
+      <Footer />
     </Box>
   )
 }
