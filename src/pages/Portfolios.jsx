@@ -332,54 +332,55 @@ export default function Portfolios() {
               boxSizing: "border-box",
             }}
           >
-            {/* Header */}
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 2,
-                pb: 1.5,
-                borderBottom: "1px dashed rgba(255,255,255,0.25)",
-                width: "100%",
-                maxWidth: "100%",
-                minWidth: 0,
-                overflow: "hidden",
-              }}
-            >
-              <Tooltip title={portfolioTitle}>
-                <Typography
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: { xs: "1rem", sm: "1.3rem", md: "1.5rem" },
-                    color: "#BB77FF",
-                    textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
-                    lineHeight: 1.2,
-                    flexGrow: 1,
-                    minWidth: 0,
-                    whiteSpace: { xs: "normal", md: "nowrap" },
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
-                >
-                  {portfolioTitle}
-                </Typography>
-              </Tooltip>
+          {/* Header (green card) */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 2,
+              pb: 1.5,
+              borderBottom: "1px dashed rgba(255,255,255,0.25)",
+              width: "100%",
+              maxWidth: "100%",
+              minWidth: 0,
+              overflow: "hidden",
+            }}
+          >
+            {/* Title with flexGrow:1 */}
+            <Tooltip title={portfolioTitle}>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: { xs: "1rem", sm: "1.3rem", md: "1.5rem" },
+                  color: "#BB77FF",
+                  textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
+                  lineHeight: 1.2,
+                  flexGrow: 1,           // expands to use available space
+                  minWidth: 0,
+                  whiteSpace: { xs: "normal", md: "nowrap" },
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {portfolioTitle}
+              </Typography>
+            </Tooltip>
 
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+            {/* Action buttons */}
+            <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
+              {/* Buy (blue) */}
               <CreateAssetButton
                 portfolioId={selected}
-                onCreated={() => {
-                  setToast({ open: true, msg: "Compra registrada", severity: "success" });
-                  // refresca holdings/tabla si quieres:
-                  // fetchHoldingsValueBreakdown(selected);
-                  // (y si tu PortfolioHoldings/PortfolioTable dependen de API, se actualizarán solos o puedes forzarlo)
-                }}
+                onCreated={() =>
+                  setToast({ open: true, msg: "Asset successfully purchased", severity: "success" })
+                }
                 buttonProps={{
-                  variant: "text",
+                  variant: "contained",
                   size: isMobile ? "small" : "medium",
                   sx: {
+                    bgcolor: "#1E88E5", // blue
                     color: "white",
-                    ":hover": { bgcolor: "blue", color: "white" },
+                    ":hover": { bgcolor: "#1565C0" },
                     transition: "transform 120ms ease, background-color 120ms ease",
                     transform: "translateZ(0)",
                     willChange: "transform",
@@ -388,18 +389,23 @@ export default function Portfolios() {
                   },
                 }}
               >
-                <CreateNewFolderIcon fontSize={isMobile ? "small" : "medium"} />
+                <CreateNewFolderIcon fontSize={isMobile ? "small" : "medium"} sx={{ mr: 0.5 }} />
+                Buy
               </CreateAssetButton>
 
+              {/* Sell (red) */}
               <DeleteAssetButton
                 portfolioId={selected}
-                onDeleted={() => setToast({ open: true, msg: "Asset sold", severity: "success" })}
+                onDeleted={() =>
+                  setToast({ open: true, msg: "Asset successfully sold", severity: "success" })
+                }
                 buttonProps={{
-                  variant: "text",
+                  variant: "contained",
                   size: isMobile ? "small" : "medium",
                   sx: {
-                    color: "red",
-                    ":hover": { bgcolor: "red", color: "white" },
+                    bgcolor: "#D32F2F",
+                    color: "white",
+                    ":hover": { bgcolor: "#9A0007" },
                     transition: "transform 120ms ease, background-color 120ms ease",
                     transform: "translateZ(0)",
                     willChange: "transform",
@@ -408,11 +414,12 @@ export default function Portfolios() {
                   },
                 }}
               >
-                <FolderDeleteIcon fontSize={isMobile ? "small" : "medium"} />
+                <FolderDeleteIcon fontSize={isMobile ? "small" : "medium"} sx={{ mr: 0.5 }} />
+                Sell
               </DeleteAssetButton>
-
-              </Box>
             </Box>
+          </Box>
+
 
             {/* Holdings + Transactions */}
             <Grid container>
