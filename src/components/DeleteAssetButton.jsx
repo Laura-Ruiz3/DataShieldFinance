@@ -1,20 +1,25 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, MenuItem, Stack, Snackbar, Alert, CircularProgress,
-  Tooltip, InputLabel, Select, FormControl, Box, Typography
+  TextField, Stack, Snackbar, Alert, CircularProgress,
+  Tooltip, Box, Typography, Divider, Chip, IconButton, InputAdornment
 } from "@mui/material";
+
 import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import SearchIcon from "@mui/icons-material/Search";
+import ClearIcon from "@mui/icons-material/Clear";
+import Autocomplete from "@mui/material/Autocomplete";
 
 export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps, children }) {
   const [open, setOpen] = useState(false);
 
-  // holdings del portafolio (para elegir cuál vender)
+  // holdings
   const [holdings, setHoldings] = useState([]);
   const [loadingHoldings, setLoadingHoldings] = useState(false);
+  const [query, setQuery] = useState("");
+  const [position, setPosition] = useState(null); // objeto holding seleccionado
 
-  // selección y venta
-  const [assetId, setAssetId] = useState("");
+  // venta
   const [maxQty, setMaxQty] = useState(0);
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
@@ -23,19 +28,60 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
-  // Cargar holdings cuando se abre el modal
+  // ===== Helpers de input numérico =====
+  const sanitizeNumber = (val) => {
+    if (val === "" || val === null || val === undefined) return "";
+    const cleaned = String(val).replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) return parts[0] + "." + parts.slice(1).join("");
+    return cleaned;
+  };
+  const preventWheel = (e) => {
+    e.target.blur();
+    e.stopPropagation();
+    setTimeout(() => e.target.focus(), 0);
+  };
+  const allowKeys = (e) => {
+    const allowed = [
+      "Backspace","Delete","Tab","Escape","Enter","ArrowLeft","ArrowRight","Home","End"
+    ];
+    if (allowed.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) {
+      if (["a","c","v","x"].includes(e.key.toLowerCase())) return;
+    }
+    if (e.key === ".") return;
+    if (/^[0-9]$/.test(e.key)) return;
+    e.preventDefault();
+  };
+  const onPasteNumeric = (e) => {
+    const text = (e.clipboardData || window.clipboardData).getData("text");
+    if (!/^[0-9]*\.?[0-9]*$/.test(text)) e.preventDefault();
+  };
+  const numericInputSx = {
+    "& input": {
+      caretColor: "transparent",
+      MozAppearance: "textfield",
+    },
+    "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+      WebkitAppearance: "none",
+      margin: 0,
+    },
+  };
+
+  // ===== Fetch holdings al abrir =====
   useEffect(() => {
     if (!open || !portfolioId) return;
     (async () => {
       try {
         setLoadingHoldings(true);
-        // Usamos tu endpoint existente:
-        // GET /api/portfolios/:portfolioId/holdings
-        const res = await fetch(`/api/portfolios/${portfolioId}/holdings`);
+        const res = await fetch(`/api/portfolios/${portfolioId}/holdings`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-store" }
+        });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setHoldings(Array.isArray(data) ? data : []);
-      } catch (e) {
+      } catch {
         setHoldings([]);
       } finally {
         setLoadingHoldings(false);
@@ -43,15 +89,28 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     })();
   }, [open, portfolioId]);
 
-  // cuando cambias el asset, ajusta maxQty sugerido
+  // Cuando cambias la posición seleccionada, actualiza maxQty y un precio sugerido si hay
   useEffect(() => {
-    if (!assetId) { setMaxQty(0); return; }
-    const h = holdings.find(x => x.asset_id === assetId);
-    setMaxQty(h ? Number(h.quantity || 0) : 0);
-  }, [assetId, holdings]);
+    if (!position) {
+      setMaxQty(0);
+      setQuantity("");
+      setPrice("");
+      return;
+    }
+    const q = Number(position.quantity || 0);
+    setMaxQty(q);
+    // intenta usar algún campo de precio si existe en tu API de holdings
+    const suggested =
+      position.price_usd ??
+      position.avg_price ??
+      position.last_price ??
+      "";
+    setPrice(suggested ? String(suggested) : "");
+  }, [position]);
 
   const resetForm = () => {
-    setAssetId("");
+    setQuery("");
+    setPosition(null);
     setMaxQty(0);
     setQuantity("");
     setPrice("");
@@ -61,12 +120,12 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
   const validate = () => {
     const errs = {};
     if (!portfolioId) errs.portfolioId = "Selecciona un portafolio";
-    if (!assetId) errs.asset_id = "Selecciona un asset";
+    if (!position || !position.asset_id) errs.asset = "Selecciona un asset a vender";
     const q = Number(quantity);
     if (!(q > 0)) errs.quantity = "Cantidad > 0";
     if (maxQty && q > maxQty) errs.quantity = `No puedes vender más de ${maxQty}`;
     const p = Number(price);
-    if (!(p >= 0)) errs.price = "Precio >= 0";
+    if (!(p >= 0)) errs.price = "Precio ≥ 0";
     setFieldErr(errs);
     return !Object.keys(errs).length;
   };
@@ -76,14 +135,13 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     if (!validate()) return;
     setLoading(true);
     try {
-      // Usamos tu ruta existente que registra una transacción SELL con CURDATE():
-      // POST /api/assets/remove  body: { portfolio_id, asset_id, quantity, price }
+      // Tu ruta existente: registra transacción SELL con CURDATE()
       const res = await fetch("/api/assets/remove", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           portfolio_id: portfolioId,
-          asset_id: assetId,
+          asset_id: position.asset_id,
           quantity: Number(quantity),
           price: Number(price)
         }),
@@ -105,84 +163,194 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     }
   };
 
+  const proceeds = useMemo(() => {
+    const q = Number(quantity), p = Number(price);
+    return q > 0 && p >= 0 ? q * p : 0;
+  }, [quantity, price]);
+
   return (
     <>
       <Tooltip title="Sell asset">
         <span>
           <Button {...buttonProps} onClick={() => setOpen(true)}>
-            {/* Conserva tu icono/children y animación */}
             {children ?? <MonetizationOnIcon />}
           </Button>
         </span>
       </Tooltip>
 
-      <Dialog open={open} onClose={() => !loading && (setOpen(false), resetForm())} fullWidth maxWidth="sm">
-        <DialogTitle>Sell asset</DialogTitle>
+      <Dialog
+        open={open}
+        onClose={() => !loading && (setOpen(false), resetForm())}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{ sx: { overflow: "hidden", borderRadius: 3 } }}
+      >
+        {/* Header con acento */}
+        <DialogTitle sx={{ bgcolor: "#8B1E3F", color: "white", fontWeight: 800, py: 2 }}>
+          Sell assets
+        </DialogTitle>
+
         <form onSubmit={submit}>
-          <DialogContent>
-            <Stack spacing={2} mt={1}>
-              {!portfolioId && (
-                <Alert severity="warning">Selecciona un portafolio antes de vender.</Alert>
-              )}
+          <DialogContent sx={{ pt: 2 }}>
+            {/* SECTION 1: seleccionar posición (Autocomplete sobre holdings) */}
+            <Typography sx={{ fontWeight: 700, mb: 1, color: "#6A4C93" }}>
+              Select position
+            </Typography>
 
-              {/* Selector de asset desde holdings */}
-              <FormControl fullWidth error={Boolean(fieldErr.asset_id)}>
-                <InputLabel id="asset-select-label">Asset</InputLabel>
-                <Select
-                  labelId="asset-select-label"
-                  label="Asset"
-                  value={assetId}
-                  onChange={(e) => setAssetId(e.target.value)}
-                  disabled={!portfolioId || loadingHoldings}
-                >
-                  {loadingHoldings && <MenuItem disabled>Loading...</MenuItem>}
-                  {!loadingHoldings && holdings.length === 0 && <MenuItem disabled>No holdings</MenuItem>}
-                  {!loadingHoldings && holdings.map(h => (
-                    <MenuItem key={h.asset_id} value={h.asset_id}>
-                      {h.symbol} — {h.name} • Qty: {Number(h.quantity).toLocaleString()}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {!!fieldErr.asset_id && <small style={{ color: "#d32f2f" }}>{fieldErr.asset_id}</small>}
-              </FormControl>
-
-              {/* Cantidad y precio */}
-              <Box>
-                <TextField
-                  type="number"
-                  label={`Quantity ${maxQty ? `(≤ ${maxQty})` : ""}`}
-                  value={quantity}
-                  onChange={(e) => setQuantity(e.target.value)}
-                  error={Boolean(fieldErr.quantity)}
-                  helperText={fieldErr.quantity || " "}
-                  inputProps={{ step: "any", min: "0" }}
-                  fullWidth
-                />
-              </Box>
-
-              <TextField
-                type="number"
-                label="Price"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                error={Boolean(fieldErr.price)}
-                helperText={fieldErr.price || " "}
-                inputProps={{ step: "any", min: "0" }}
+            <Box
+              sx={{
+                p: 2,
+                border: "1px dashed rgba(0,0,0,0.1)",
+                borderRadius: 2,
+                mb: 2,
+                bgcolor: "rgba(0,184,212,0.04)"
+              }}
+            >
+              <Autocomplete
                 fullWidth
+                loading={loadingHoldings}
+                options={holdings}
+                value={position}
+                onChange={(_e, newVal) => setPosition(newVal)}
+                onInputChange={(_e, newInput) => setQuery(newInput)}
+                getOptionLabel={(opt) =>
+                  opt ? `${opt.symbol} — ${opt.name} • Qty: ${Number(opt.quantity || 0).toLocaleString()}` : ""
+                }
+                filterOptions={(x) => x} // server filtering (aunque aquí ya listamos todo)
+                isOptionEqualToValue={(opt, val) => String(opt.asset_id) === String(val?.asset_id)}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search holdings"
+                    placeholder="Type symbol or name"
+                    InputProps={{
+                      ...params.InputProps,
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon sx={{ opacity: 0.6 }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <>
+                          {query ? (
+                            <IconButton
+                              size="small"
+                              onClick={() => setQuery("")}
+                              aria-label="clear"
+                              edge="end"
+                              tabIndex={-1}
+                            >
+                              <ClearIcon fontSize="small" />
+                            </IconButton>
+                          ) : null}
+                          {params.InputProps.endAdornment}
+                        </>
+                      )
+                    }}
+                    error={Boolean(fieldErr.asset)}
+                    helperText={fieldErr.asset || " "}
+                  />
+                )}
               />
 
-              {!!fieldErr.portfolioId && <Alert severity="error">{fieldErr.portfolioId}</Alert>}
-
-              {/* Preview opcional */}
-              {quantity && price && (
-                <Typography variant="body2" color="text.secondary">
-                  Importe aprox.: {(Number(quantity) * Number(price)).toLocaleString(undefined, { style: 'currency', currency: 'USD' })}
-                </Typography>
+              {/* resumen corto de la posición */}
+              {position && (
+                <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center" flexWrap="wrap">
+                  <Chip label={position.symbol} color="primary" variant="outlined" />
+                  <Typography variant="body2" sx={{ opacity: 0.85 }}>
+                    {position.name}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                    • Qty: {Number(position.quantity || 0).toLocaleString()}
+                  </Typography>
+                  {"currency" in position && (
+                    <Typography variant="body2" sx={{ opacity: 0.7 }}>
+                      • {position.currency}
+                    </Typography>
+                  )}
+                </Stack>
               )}
-            </Stack>
+            </Box>
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* SECTION 2: detalles de venta */}
+            <Typography sx={{ fontWeight: 700, mb: 1, color: "#FF6B6B" }}>
+              Sell details
+            </Typography>
+
+            <Box
+              sx={{
+                p: 2,
+                border: "1px dashed rgba(0,0,0,0.1)",
+                borderRadius: 2,
+                bgcolor: "rgba(255,107,107,0.04)"
+              }}
+            >
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="center">
+                <TextField
+                  type="text"
+                  inputMode="decimal"
+                  label={`Quantity ${maxQty ? `(≤ ${maxQty})` : ""}`}
+                  value={quantity}
+                  onChange={(e) => setQuantity(sanitizeNumber(e.target.value))}
+                  onKeyDown={allowKeys}
+                  onPaste={onPasteNumeric}
+                  onWheel={preventWheel}
+                  error={Boolean(fieldErr.quantity)}
+                  helperText={fieldErr.quantity || " "}
+                  inputProps={{ step: "any", min: "0", pattern: "^[0-9]*\\.?[0-9]+$" }}
+                  sx={numericInputSx}
+                />
+
+                <TextField
+                  type="text"
+                  inputMode="decimal"
+                  label="Price"
+                  value={price}
+                  onChange={(e) => setPrice(sanitizeNumber(e.target.value))}
+                  onKeyDown={allowKeys}
+                  onPaste={onPasteNumeric}
+                  onWheel={preventWheel}
+                  error={Boolean(fieldErr.price)}
+                  helperText={fieldErr.price || " "}
+                  inputProps={{ step: "any", min: "0", pattern: "^[0-9]*\\.?[0-9]+$" }}
+                  sx={numericInputSx}
+                />
+
+                {/* Acción rápida: vender todo */}
+                <Button
+                  variant="outlined"
+                  disabled={!maxQty}
+                  onClick={() => setQuantity(String(maxQty))}
+                  sx={{ whiteSpace: "nowrap" }}
+                >
+                  Sell all
+                </Button>
+              </Stack>
+
+              {/* Proceeds preview */}
+              <Box sx={{ mt: 2, textAlign: "right" }}>
+                <Typography variant="body2" sx={{ opacity: 0.7, mb: 0.5 }}>
+                  Estimated proceeds (qty × price)
+                </Typography>
+                <Typography sx={{ fontWeight: 800, fontSize: "1.1rem" }}>
+                  {proceeds
+                    ? proceeds.toLocaleString(undefined, { style: "currency", currency: position?.currency || "USD" })
+                    : "—"}
+                </Typography>
+              </Box>
+
+              {!!fieldErr.portfolioId && (
+                <Alert sx={{ mt: 2 }} severity="error">{fieldErr.portfolioId}</Alert>
+              )}
+            </Box>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => { setOpen(false); resetForm(); }} disabled={loading}>Cancel</Button>
+
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => { setOpen(false); resetForm(); }} disabled={loading}>
+              Cancel
+            </Button>
             <Button type="submit" variant="contained" disabled={loading || !portfolioId}>
               {loading ? <CircularProgress size={22} /> : "Sell"}
             </Button>

@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
   TextField, MenuItem, Stack, Snackbar, Alert, CircularProgress,
-  Tooltip, InputLabel, Select, FormControl, Box, Typography
+  Tooltip, Box, Typography, Divider, Chip, FormControl, InputLabel, Select
 } from "@mui/material";
 import ShoppingCartIcon from '@mui/icons-material/ShoppingCart';
 
-const TYPES = ["stock", "bond", "crypto", "fund", "cash"]; // coincide con tu ENUM
+const TYPES = ["stock", "bond", "crypto", "fund", "cash"]; 
 
 export default function CreateAssetButton({ onCreated, buttonProps, portfolioId, children }) {
   const [open, setOpen] = useState(false);
@@ -137,94 +137,110 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
         onClose={() => !loading && (setOpen(false), resetForm())}
         fullWidth
         maxWidth="sm"
-        PaperProps={{
-          sx: {
-            borderRadius: 2,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
-            overflow: "hidden"
-          }
-        }}
+        PaperProps={{ sx: { overflow: "hidden", borderRadius: 3 } }}
       >
-        <DialogTitle
-          sx={{
-            fontWeight: 600,
-            pb: 1,
-            backgroundColor: "#f7f7f7",
-            borderBottom: "1px solid rgba(0,0,0,0.08)"
-          }}
-        >
+        <DialogTitle sx={{ bgcolor: "#00674F", color: "white", fontWeight: 800, py: 2 }}>
           Buy Asset
         </DialogTitle>
+
         <form onSubmit={submit}>
-          <DialogContent sx={{ pt: 3 }}>
-            <Stack spacing={2.5}>
-              {/* Tipo */}
-              <FormControl fullWidth>
-                <InputLabel id="asset-type-label">Asset Type</InputLabel>
-                <Select
-                  labelId="asset-type-label"
-                  label="Asset Type"
-                  value={assetType}
-                  onChange={(e) => setAssetType(e.target.value)}
-                  sx={{
-                    borderRadius: 1.5,
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#0B5D32',
-                    },
-                  }}
-                >
-                  {TYPES.map(t => <MenuItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</MenuItem>)}
-                </Select>
-              </FormControl>
+          <DialogContent sx={{ pt: 2 }}>
+            {/* ASSET SELECTION SECTION */}
+            <Typography sx={{ fontWeight: 700, mb: 1, color: "#6A4C93" }}>
+              Select asset
+            </Typography>
+            <Box
+              sx={{
+                p: 2,
+                border: "1px dashed rgba(0,0,0,0.1)",
+                borderRadius: 2,
+                mb: 2,
+                bgcolor: "rgba(0,184,212,0.04)"
+              }}
+            >
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems="stretch">
+                <FormControl sx={{ minWidth: 140 }}>
+                  <InputLabel id="asset-type-label">Asset Type</InputLabel>
+                  <Select
+                    labelId="asset-type-label"
+                    label="Asset Type"
+                    value={assetType}
+                    onChange={(e) => setAssetType(e.target.value)}
+                    size="small"
+                  >
+                    {TYPES.map(t => <MenuItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</MenuItem>)}
+                  </Select>
+                </FormControl>
 
-              {/* Asset existente */}
-              <FormControl fullWidth error={Boolean(fieldErr.asset_id)}>
-                <InputLabel id="asset-select-label">Asset</InputLabel>
-                <Select
-                  labelId="asset-select-label"
-                  label="Asset"
-                  value={assetId}
-                  onChange={(e) => setAssetId(e.target.value)}
-                  sx={{
-                    borderRadius: 1.5,
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#0B5D32',
-                    },
-                  }}
-                >
-                  {loadingAssets && <MenuItem disabled>Loading...</MenuItem>}
-                  {!loadingAssets && assetsList.length === 0 && <MenuItem disabled>No assets</MenuItem>}
-                  {!loadingAssets && assetsList.map(a => (
-                    <MenuItem key={a.asset_id} value={a.asset_id}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-                        <span>
-                          <strong>{a.symbol}</strong> — {a.name}
-                        </span>
-                        <Box
-                          component="span"
-                          sx={{
-                            ml: 1,
-                            bgcolor: a.price ? '#f0f7f0' : '#fff0f0',
-                            px: 1,
-                            py: 0.5,
-                            borderRadius: 1,
-                            fontWeight: 'bold',
-                            color: a.price ? 'success.dark' : 'error.main'
-                          }}
-                        >
-                          {a.price ? `$${Number(a.price).toFixed(2)}` : 'No price'}
+                <FormControl fullWidth error={Boolean(fieldErr.asset_id)}>
+                  <InputLabel id="asset-select-label">Asset</InputLabel>
+                  <Select
+                    labelId="asset-select-label"
+                    label="Asset"
+                    value={assetId}
+                    onChange={(e) => setAssetId(e.target.value)}
+                  >
+                    {loadingAssets && <MenuItem disabled>Loading...</MenuItem>}
+                    {!loadingAssets && assetsList.length === 0 && <MenuItem disabled>No assets</MenuItem>}
+                    {!loadingAssets && assetsList.map(a => (
+                      <MenuItem key={a.asset_id} value={a.asset_id}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                          <span>
+                            <strong>{a.symbol}</strong> — {a.name}
+                          </span>
+                          <Box
+                            component="span"
+                            sx={{
+                              ml: 1,
+                              bgcolor: a.price ? '#f0f7f0' : '#fff0f0',
+                              px: 1,
+                              py: 0.5,
+                              borderRadius: 1,
+                              fontWeight: 'bold',
+                              color: a.price ? 'success.dark' : 'error.main'
+                            }}
+                          >
+                            {a.price ? `$${Number(a.price).toFixed(2)}` : 'No price'}
+                          </Box>
                         </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-                {!!fieldErr.asset_id && <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{fieldErr.asset_id}</Typography>}
-              </FormControl>
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  {!!fieldErr.asset_id && <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>{fieldErr.asset_id}</Typography>}
+                </FormControl>
+              </Stack>
 
+              {selectedAsset && (
+                <Box sx={{ mt: 2 }}>
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Chip label={selectedAsset.symbol} color="primary" variant="outlined" />
+                    <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                      {selectedAsset.name} • {selectedAsset.asset_type?.toUpperCase()} • {selectedAsset.currency}
+                    </Typography>
+                  </Stack>
+                </Box>
+              )}
+            </Box>
+
+            <Divider sx={{ my: 1 }} />
+
+            {/* TRANSACTION DETAILS SECTION */}
+            <Typography sx={{ fontWeight: 700, mb: 1, color: "#FF6B6B" }}>
+              Buy details
+            </Typography>
+            <Box
+              sx={{
+                p: 2,
+                border: "1px dashed rgba(0,0,0,0.1)",
+                borderRadius: 2,
+                bgcolor: "rgba(255,107,107,0.04)"
+              }}
+            >
               {/* Display current price from database */}
               {selectedAsset && (
                 <Box sx={{
                   p: 1.5,
+                  mb: 2,
                   bgcolor: '#f5fff7',
                   borderRadius: 1.5,
                   border: '1px solid rgba(11, 93, 50, 0.2)'
@@ -241,90 +257,64 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
                 </Box>
               )}
 
-              {/* Transacción */}
-              <TextField
-                type="date"
-                label="Date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                error={Boolean(fieldErr.date)}
-                helperText={fieldErr.date || " "}
-                InputLabelProps={{ shrink: true }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 1.5,
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#0B5D32',
-                    },
-                  },
-                }}
-              />
-              <TextField
-                type="number"
-                label="Quantity"
-                value={quantity}
-                onChange={(e) => setQuantity(e.target.value)}
-                error={Boolean(fieldErr.quantity)}
-                helperText={fieldErr.quantity || " "}
-                inputProps={{ step: "any", min: "0" }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 1.5,
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#0B5D32',
-                    },
-                  },
-                }}
-              />
-              <TextField
-                type="number"
-                label="Fees (optional)"
-                value={fees}
-                onChange={(e) => setFees(e.target.value)}
-                inputProps={{ step: "any", min: "0" }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 1.5,
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#0B5D32',
-                    },
-                  },
-                }}
-              />
-{/*               <TextField
-                label="Notes (optional)"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                multiline
-                minRows={2}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 1.5,
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#0B5D32',
-                    },
-                  },
-                }}
-              /> */}
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <TextField
+                  type="date"
+                  label="Date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  error={Boolean(fieldErr.date)}
+                  helperText={fieldErr.date || " "}
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 200 }}
+                />
+              </Stack>
+
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ mt: 1 }}>
+                <TextField
+                  type="number"
+                  label="Quantity"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  error={Boolean(fieldErr.quantity)}
+                  helperText={fieldErr.quantity || " "}
+                  inputProps={{ step: "any", min: "0" }}
+                  fullWidth
+                />
+                <TextField
+                  type="number"
+                  label="Fees (optional)"
+                  value={fees}
+                  onChange={(e) => setFees(e.target.value)}
+                  inputProps={{ step: "any", min: "0" }}
+                  fullWidth
+                />
+              </Stack>
+
+              {/* Display cost estimate */}
+              {selectedAsset && quantity && Number(quantity) > 0 && (
+                <Box sx={{ mt: 2, textAlign: "right" }}>
+                  <Typography variant="body2" sx={{ opacity: 0.7, mb: 0.5 }}>
+                    Estimated cost (qty × price)
+                  </Typography>
+                  <Typography sx={{ fontWeight: 800, fontSize: "1.1rem" }}>
+                    {(Number(quantity) * Number(selectedAsset.price)).toLocaleString(undefined, 
+                      { style: "currency", currency: selectedAsset.currency || "USD" })}
+                  </Typography>
+                </Box>
+              )}
 
               {!!fieldErr.portfolioId && (
-                <Alert
-                  severity="error"
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  {fieldErr.portfolioId}
-                </Alert>
+                <Alert sx={{ mt: 2 }} severity="error">{fieldErr.portfolioId}</Alert>
               )}
-            </Stack>
+            </Box>
           </DialogContent>
-          <DialogActions sx={{ px: 3, py: 2, bgcolor: "#f7f7f7", borderTop: "1px solid rgba(0,0,0,0.08)" }}>
+
+          <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button
               onClick={() => { setOpen(false); resetForm(); }}
               disabled={loading}
-              sx={{
-                borderRadius: 28,
-                px: 3
-              }}
+              sx={{ borderRadius: 28, px: 3 }}
             >
               Cancel
             </Button>
@@ -361,26 +351,9 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
         open={toast.open}
         autoHideDuration={3000}
         onClose={() => setToast(t => ({ ...t, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{
-          position: 'fixed',
-          top: { xs: 16, sm: 24 },
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 9999,
-          '& .MuiPaper-root': {
-            borderRadius: 2,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
-          }
-        }}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
-        <Alert
-          severity={toast.severity}
-          variant="filled"
-          sx={{ width: '100%' }}
-        >
-          {toast.msg}
-        </Alert>
+        <Alert severity={toast.severity} variant="filled">{toast.msg}</Alert>
       </Snackbar>
     </>
   );
