@@ -8,7 +8,9 @@ import {
   TableRow, 
   Paper,
   CircularProgress,
-  Alert 
+  Alert,
+  Box,
+  Typography
 } from '@mui/material';
 
 export default function PortfolioTable({ portfolioId }) {
@@ -50,55 +52,182 @@ export default function PortfolioTable({ portfolioId }) {
 
   if (loading) {
     return (
-      <TableContainer component={Paper}>
-        <div className="flex justify-center p-4">
-          <CircularProgress />
-        </div>
+      <TableContainer 
+        component={Paper}
+        sx={{ 
+          maxHeight: 300,
+          borderRadius: 2,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+          overflow: 'auto',
+          backgroundColor: '#ffffff',
+          p: 2
+        }}
+      >
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", p: 4 }}>
+          <CircularProgress sx={{ color: '#0B5D32' }} />
+        </Box>
       </TableContainer>
     );
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return (
+      <Alert 
+        severity="error" 
+        sx={{ 
+          borderRadius: 2, 
+          mb: 2 
+        }}
+      >
+        {error}
+      </Alert>
+    );
   }
 
   return (
     <TableContainer 
       component={Paper}
       sx={{ 
-        maxHeight: 300, // Set maximum height to enable vertical scrolling
-        overflow: 'auto' // Ensure scrollbars appear when content exceeds dimensions
+        maxHeight: 300,
+        borderRadius: 2,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+        overflow: 'auto',
+        backgroundColor: '#ffffff',
+        transition: "all 0.3s ease",
+        "&:hover": {
+          boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+        }
       }}
     >
       <Table size="small" aria-label="portfolio transactions table" stickyHeader>
         <TableHead>
-          <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableCell>Date</TableCell>
-            <TableCell>Ticker</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell>Type</TableCell>
-            <TableCell align="right">Quantity</TableCell>
-            <TableCell align="right">Price</TableCell>
-            <TableCell align="right">Fees</TableCell>
+          <TableRow>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                '&:first-of-type': { borderTopLeftRadius: 8 },
+                '&:last-of-type': { borderTopRightRadius: 8 }
+              }}
+            >
+              Date
+            </TableCell>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Ticker
+            </TableCell>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Name
+            </TableCell>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Type
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Quantity
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Price
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Fees
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
           {transactions.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} align="center">No transactions found</TableCell>
+              <TableCell colSpan={7} align="center">
+                <Typography sx={{ py: 2, color: 'text.secondary' }}>
+                  No transactions found
+                </Typography>
+              </TableCell>
             </TableRow>
           ) : (
             transactions.map((tx) => (
               <TableRow
                 key={tx.transaction_id}
-                sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+                sx={{ 
+                  '&:last-child td, &:last-child th': { border: 0 },
+                  transition: "background-color 0.2s ease",
+                  '&:hover': { 
+                    backgroundColor: '#f0fff5'
+                  }
+                }}
               >
                 <TableCell>{new Date(tx.date).toLocaleDateString()}</TableCell>
-                <TableCell component="th" scope="row" sx={{ fontWeight: 'medium' }}>
+                <TableCell 
+                  component="th" 
+                  scope="row" 
+                  sx={{ 
+                    fontWeight: 'medium',
+                    color: '#0B5D32'
+                  }}
+                >
                   {tx.symbol}
                 </TableCell>
                 <TableCell>{tx.name}</TableCell>
-                <TableCell>{tx.type}</TableCell>
+                <TableCell>
+                  <Box
+                    component="span"
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 4,
+                      fontSize: '0.75rem',
+                      fontWeight: 'medium',
+                      backgroundColor: tx.type === 'BUY' ? 'rgba(11, 93, 50, 0.1)' : 'rgba(255, 107, 107, 0.1)',
+                      color: tx.type === 'BUY' ? '#0B5D32' : '#FF6B6B',
+                    }}
+                  >
+                    {tx.type}
+                  </Box>
+                </TableCell>
                 <TableCell align="right">{tx.quantity}</TableCell>
                 <TableCell align="right">${Number(tx.price).toFixed(2)}</TableCell>
                 <TableCell align="right">${Number(tx.fees).toFixed(2)}</TableCell>

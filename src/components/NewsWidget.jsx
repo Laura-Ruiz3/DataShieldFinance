@@ -2,9 +2,12 @@ import { Box, Typography, CircularProgress } from '@mui/material';
 import Card from './Card';
 import { useMarketauxNews } from '../hooks/useMarketauxNews';
 
-export default function NewsWidget() {
+export default function NewsWidget({ sx }) {
   // Using a higher limit to display more news
   const { loading, error, news } = useMarketauxNews({ countries: 'us,mx,ca', language: 'en', limit: 6 });
+  
+  // Check if the error is specifically HTTP_402
+  const isPaymentRequiredError = error && error.includes('HTTP_402');
   
   return (
     <Card 
@@ -30,34 +33,82 @@ export default function NewsWidget() {
         border: '1px solid #e0e0e0',
         display: 'flex',
         flexDirection: 'column',
-        height: 'auto', // Allow height to adjust to content
-        alignSelf: 'start' // Prevents stretching in flex layouts
+        height: '100%',
+        flexGrow: 1,
+        ...sx
       }}
     >
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3, flexGrow: 1 }}>
           <CircularProgress size={24} sx={{ color: '#0B5D32' }} />
         </Box>
       )}
       
-      {error && (
+      {/* Custom message for HTTP_402 error */}
+      {isPaymentRequiredError && (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          py: 4,
+          px: 2,
+          textAlign: 'center',
+          color: '#555',
+          flexGrow: 1
+        }}>
+          <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
+            No financial news available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Check back later for the latest market updates and financial insights.
+          </Typography>
+        </Box>
+      )}
+      
+      {/* Show other errors normally */}
+      {error && !isPaymentRequiredError && (
         <Box sx={{ 
           p: 2, 
           backgroundColor: 'rgba(245, 158, 11, 0.1)', 
           borderRadius: '4px',
-          color: '#B45309'
+          color: '#B45309',
+          flexGrow: 1
         }}>
           {error}
         </Box>
       )}
       
-      {!loading && !error && (
+      {!loading && !error && news.length === 0 && (
+        <Box sx={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          py: 4,
+          px: 2,
+          textAlign: 'center',
+          color: '#555',
+          flexGrow: 1
+        }}>
+          <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>
+            No financial news available
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Check back later for the latest market updates and financial insights.
+          </Typography>
+        </Box>
+      )}
+      
+      {!loading && !error && news.length > 0 && (
         <Box 
           sx={{ 
             mt: 1, 
             width: '100%',
-            maxHeight: news.length > 6 ? '450px' : 'unset', // Only scroll if many items
-            overflowY: news.length > 6 ? 'auto' : 'visible'
+            flexGrow: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            overflowY: 'auto'
           }}
         >
           {news.map((n, idx) => (
