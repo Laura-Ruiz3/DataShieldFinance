@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button, Dialog, DialogTitle, DialogContent, DialogActions,
-  TextField, Stack, Snackbar, Alert, CircularProgress,
+  TextField, Stack, Alert, CircularProgress,
   Tooltip, Box, Typography, Divider, Chip, IconButton, InputAdornment
 } from "@mui/material";
 
@@ -13,13 +13,11 @@ import Autocomplete from "@mui/material/Autocomplete";
 export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps, children }) {
   const [open, setOpen] = useState(false);
 
-  // holdings
   const [holdings, setHoldings] = useState([]);
   const [loadingHoldings, setLoadingHoldings] = useState(false);
   const [query, setQuery] = useState("");
-  const [position, setPosition] = useState(null); // objeto holding seleccionado
+  const [position, setPosition] = useState(null);
 
-  // venta
   const [maxQty, setMaxQty] = useState(0);
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
@@ -28,7 +26,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
-  // ===== Helpers de input numérico =====
   const sanitizeNumber = (val) => {
     if (val === "" || val === null || val === undefined) return "";
     const cleaned = String(val).replace(/[^0-9.]/g, "");
@@ -68,7 +65,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     },
   };
 
-  // ===== Fetch holdings al abrir =====
   useEffect(() => {
     if (!open || !portfolioId) return;
     (async () => {
@@ -89,7 +85,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     })();
   }, [open, portfolioId]);
 
-  // Cuando cambias la posición seleccionada, actualiza maxQty y un precio sugerido si hay
   useEffect(() => {
     if (!position) {
       setMaxQty(0);
@@ -99,7 +94,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     }
     const q = Number(position.quantity || 0);
     setMaxQty(q);
-    // intenta usar algún campo de precio si existe en tu API de holdings
     const suggested =
       position.price_usd ??
       position.avg_price ??
@@ -135,7 +129,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
     if (!validate()) return;
     setLoading(true);
     try {
-      // Tu ruta existente: registra transacción SELL con CURDATE()
       const res = await fetch("/api/assets/remove", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -185,14 +178,12 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
         maxWidth="sm"
         PaperProps={{ sx: { overflow: "hidden", borderRadius: 3 } }}
       >
-        {/* Header con acento */}
         <DialogTitle sx={{ bgcolor: "#8B1E3F", color: "white", fontWeight: 800, py: 2 }}>
           Sell assets
         </DialogTitle>
 
         <form onSubmit={submit}>
           <DialogContent sx={{ pt: 2 }}>
-            {/* SECTION 1: seleccionar posición (Autocomplete sobre holdings) */}
             <Typography sx={{ fontWeight: 700, mb: 1, color: "#6A4C93" }}>
               Select position
             </Typography>
@@ -216,7 +207,7 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
                 getOptionLabel={(opt) =>
                   opt ? `${opt.symbol} — ${opt.name} • Qty: ${Number(opt.quantity || 0).toLocaleString()}` : ""
                 }
-                filterOptions={(x) => x} // server filtering (aunque aquí ya listamos todo)
+                filterOptions={(x) => x}
                 isOptionEqualToValue={(opt, val) => String(opt.asset_id) === String(val?.asset_id)}
                 renderInput={(params) => (
                   <TextField
@@ -252,8 +243,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
                   />
                 )}
               />
-
-              {/* resumen corto de la posición */}
               {position && (
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }} alignItems="center" flexWrap="wrap">
                   <Chip label={position.symbol} color="primary" variant="outlined" />
@@ -274,7 +263,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
 
             <Divider sx={{ my: 1 }} />
 
-            {/* SECTION 2: detalles de venta */}
             <Typography sx={{ fontWeight: 700, mb: 1, color: "#FF6B6B" }}>
               Sell details
             </Typography>
@@ -302,23 +290,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
                   inputProps={{ step: "any", min: "0", pattern: "^[0-9]*\\.?[0-9]+$" }}
                   sx={numericInputSx}
                 />
-
-                <TextField
-                  type="text"
-                  inputMode="decimal"
-                  label="Price"
-                  value={price}
-                  onChange={(e) => setPrice(sanitizeNumber(e.target.value))}
-                  onKeyDown={allowKeys}
-                  onPaste={onPasteNumeric}
-                  onWheel={preventWheel}
-                  error={Boolean(fieldErr.price)}
-                  helperText={fieldErr.price || " "}
-                  inputProps={{ step: "any", min: "0", pattern: "^[0-9]*\\.?[0-9]+$" }}
-                  sx={numericInputSx}
-                />
-
-                {/* Acción rápida: vender todo */}
                 <Button
                   variant="outlined"
                   disabled={!maxQty}
@@ -328,25 +299,11 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
                   Sell all
                 </Button>
               </Stack>
-
-              {/* Proceeds preview */}
-              <Box sx={{ mt: 2, textAlign: "right" }}>
-                <Typography variant="body2" sx={{ opacity: 0.7, mb: 0.5 }}>
-                  Estimated proceeds (qty × price)
-                </Typography>
-                <Typography sx={{ fontWeight: 800, fontSize: "1.1rem" }}>
-                  {proceeds
-                    ? proceeds.toLocaleString(undefined, { style: "currency", currency: position?.currency || "USD" })
-                    : "—"}
-                </Typography>
-              </Box>
-
               {!!fieldErr.portfolioId && (
                 <Alert sx={{ mt: 2 }} severity="error">{fieldErr.portfolioId}</Alert>
               )}
             </Box>
           </DialogContent>
-
           <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={() => { setOpen(false); resetForm(); }} disabled={loading}>
               Cancel
@@ -357,15 +314,6 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
           </DialogActions>
         </form>
       </Dialog>
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={2800}
-        onClose={() => setToast(t => ({ ...t, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={toast.severity} variant="filled">{toast.msg}</Alert>
-      </Snackbar>
     </>
   );
 }

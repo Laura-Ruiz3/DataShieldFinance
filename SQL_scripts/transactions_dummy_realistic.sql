@@ -20,7 +20,6 @@ INSERT INTO portfolios (user_id, name, description) VALUES
 -- ASSETS
 -- ================================
 INSERT INTO assets (symbol, name, asset_type, currency, sector) VALUES
-('C', 'Citigroup Inc', 'stock', 'USD', 'Financials'),
 ('AMZN', 'Amazon.com Inc', 'stock', 'USD', 'Technology'),
 ('TSLA', 'Tesla Inc', 'stock', 'USD', 'Automotive'),
 ('FB', 'Meta Platforms Inc', 'stock', 'USD', 'Technology'),

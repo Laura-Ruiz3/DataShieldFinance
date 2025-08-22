@@ -11,16 +11,13 @@ const TYPES = ["stock", "bond", "crypto", "fund", "cash"];
 export default function CreateAssetButton({ onCreated, buttonProps, portfolioId, children }) {
   const [open, setOpen] = useState(false);
 
-  // filtro y catálogo
   const [assetType, setAssetType] = useState("stock");
   const [assetsList, setAssetsList] = useState([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
 
-  // selección
   const [assetId, setAssetId] = useState("");
   const [selectedAsset, setSelectedAsset] = useState(null);
 
-  // transacción
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [quantity, setQuantity] = useState("");
   const [fees, setFees] = useState("");
@@ -30,7 +27,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
-  // Cargar catálogo al abrir y cuando cambia el tipo
   useEffect(() => {
     if (!open) return;
     (async () => {
@@ -39,7 +35,7 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
         const res = await fetch(`/api/assets?type=${encodeURIComponent(assetType)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        console.log("Assets with prices:", data); // Debug log
+        console.log("Assets with prices:", data);
         setAssetsList(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error fetching assets:", error);
@@ -50,7 +46,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
     })();
   }, [open, assetType]);
 
-  // Track the selected asset to get its price
   useEffect(() => {
     if (assetId) {
       const asset = assetsList.find(a => a.asset_id === assetId);
@@ -89,7 +84,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
 
     setLoading(true);
     try {
-      // Registrar compra (BUY) en /api/transactions
       const resT = await fetch("/api/transactions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -99,7 +93,7 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
           date,
           type: "buy",
           quantity: Number(quantity),
-          price: selectedAsset.price, // Use price from database
+          price: selectedAsset.price,
           fees: fees ? Number(fees) : 0,
           notes: notes || undefined
         }),
@@ -145,7 +139,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
 
         <form onSubmit={submit}>
           <DialogContent sx={{ pt: 2 }}>
-            {/* ASSET SELECTION SECTION */}
             <Typography sx={{ fontWeight: 700, mb: 1, color: "#6A4C93" }}>
               Select asset
             </Typography>
@@ -223,8 +216,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
             </Box>
 
             <Divider sx={{ my: 1 }} />
-
-            {/* TRANSACTION DETAILS SECTION */}
             <Typography sx={{ fontWeight: 700, mb: 1, color: "#FF6B6B" }}>
               Buy details
             </Typography>
@@ -236,7 +227,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
                 bgcolor: "rgba(255,107,107,0.04)"
               }}
             >
-              {/* Display current price from database */}
               {selectedAsset && (
                 <Box sx={{
                   p: 1.5,
@@ -290,8 +280,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
                   fullWidth
                 />
               </Stack>
-
-              {/* Display cost estimate */}
               {selectedAsset && quantity && Number(quantity) > 0 && (
                 <Box sx={{ mt: 2, textAlign: "right" }}>
                   <Typography variant="body2" sx={{ opacity: 0.7, mb: 0.5 }}>
@@ -346,15 +334,6 @@ export default function CreateAssetButton({ onCreated, buttonProps, portfolioId,
           </DialogActions>
         </form>
       </Dialog>
-
-      <Snackbar
-        open={toast.open}
-        autoHideDuration={3000}
-        onClose={() => setToast(t => ({ ...t, open: false }))}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert severity={toast.severity} variant="filled">{toast.msg}</Alert>
-      </Snackbar>
     </>
   );
 }
