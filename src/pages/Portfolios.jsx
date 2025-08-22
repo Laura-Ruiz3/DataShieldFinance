@@ -340,12 +340,12 @@ const handleAssetDeleted = (data) => {
           <Grid item>
   <CreatePortfolioButton userId={2} onCreated={handleCreated} />
 </Grid>
-<Grid item>
+{/* <Grid item>
   <ModifyPortfolioButton 
     portfolio={selectedPortfolio} 
     onUpdated={handleUpdated} 
   />
-</Grid>
+</Grid> */}
 <Grid item>
   {/* Delete Portfolio Button */}
   <Button
