@@ -21,7 +21,8 @@ export default function NewsWidget({ sx }) {
             fontSize: '1.1rem',
             paddingBottom: '8px',
             borderBottom: '2px solid #0B5D32',
-            display: 'inline-block'
+            display: 'inline-block',
+            mt: 2
           }}
         >
           Financial News

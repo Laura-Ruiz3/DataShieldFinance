@@ -384,15 +384,17 @@ export default function Home() {
       </Card>
       
       {/* Simplified grid structure with direct components */}
-      <Grid container spacing={3} mt={2}>
-        <Grid item xs={12} md={6}>
+      {/* <Grid container spacing={3} mt={2}>
+        <Grid item xs={12}>
           <StocksSidebar />
         </Grid>
         
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <NewsWidget />
         </Grid>
-      </Grid>      
+      </Grid>       */}
+      <StocksSidebar />
+      <NewsWidget />
     </Container>
   )
 }
