@@ -47,7 +47,7 @@ router.get("/", async (req, res, next) => {
 
     const [rows] = await pool.query(
       `
-      SELECT asset_id, symbol, name, asset_type, currency, sector, created_at
+      SELECT asset_id, symbol, name, asset_type, currency, sector, price, last_updated, created_at
       FROM assets
       ${where}
       ORDER BY symbol ASC
@@ -144,6 +144,64 @@ router.get("/:portfolioId/:assetId/performance", async (req, res) => {
   }
 });
 
+// Add this after your existing routes
 
+// Get stocks with current market prices
+router.get("/stocks-with-prices", async (req, res, next) => {
+  try {
+    // Get stock assets from database
+    const [stocks] = await pool.query(
+      `SELECT asset_id, symbol, name, asset_type, currency, sector
+       FROM assets
+       WHERE asset_type = 'stock'
+       ORDER BY symbol ASC`
+    );
+    
+    if (stocks.length === 0) {
+      return res.json([]);
+    }
+    
+    // Get current market data for these stocks
+    const symbols = stocks.map(s => s.symbol);
+    const marketData = await getMarketData(symbols);
+    
+    // Combine database data with market data
+    const enhancedStocks = stocks.map(stock => {
+      const marketInfo = marketData[stock.symbol] || {};
+      return {
+        ...stock,
+        price: marketInfo.price || 0,
+        change: marketInfo.changePercent || 0
+      };
+    });
+    
+    res.json(enhancedStocks);
+  } catch (err) { 
+    console.error("Error fetching stocks with prices:", err);
+    next(err); 
+  }
+});
+
+// Market data helper function
+async function getMarketData(symbols) {
+  try {
+    // Import your financial data client
+    const { getStockPrices } = require("../services/financial-data-client");
+    
+    // Call the service to get market data
+    // Replace this with your actual implementation
+    const marketData = await getStockPrices(symbols);
+    return marketData;
+    
+  } catch (error) {
+    console.error("Error fetching market data:", error);
+    // Return empty results if the API call fails
+    // This prevents the entire endpoint from failing
+    return symbols.reduce((acc, symbol) => {
+      acc[symbol] = { price: 0, changePercent: 0 };
+      return acc;
+    }, {});
+  }
+}
 
 module.exports = router;

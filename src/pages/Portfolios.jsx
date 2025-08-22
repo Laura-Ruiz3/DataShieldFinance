@@ -2,6 +2,7 @@ import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
 import PortfolioTable from '../components/PortfolioTable';
 import StocksSidebar from '../components/StocksSidebar';
+import ModifyPortfolioButton from "../components/ModifyPortfolioButton";
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Button, Container, Grid, Snackbar, Typography } from '@mui/material';
 import Tooltip from "@mui/material/Tooltip";
@@ -43,15 +44,44 @@ export default function Portfolios() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  const [holdingsKey, setHoldingsKey] = useState(0);
+  const [transactionsKey, setTransactionsKey] = useState(0);
+  
+  const handleAssetCreated = (data) => {
+  // Refresh both holdings and transactions tables
+  setHoldingsKey(prev => prev + 1);
+  setTransactionsKey(prev => prev + 1);
+  setToast({ open: true, msg: "Asset purchased successfully", severity: "success" });
+};
+
+const handleAssetDeleted = (data) => {
+  // Refresh both holdings and transactions tables
+  setHoldingsKey(prev => prev + 1);
+  setTransactionsKey(prev => prev + 1);
+  setToast({ open: true, msg: "Asset sold successfully", severity: "success" });
+};
+
   const [portfolios, setPortfolios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selected, setSelected] = useState(null);
   const [toast, setToast] = useState({ open: false, msg: "", severity: "success" });
 
+  const selectedPortfolio = portfolios.find(p => p.portfolio_id === selected);
+  const portfolioDescription = selectedPortfolio?.description || "";
+
   // ===== PERFORMANCE (línea) =====
   const [performanceData, setPerformanceData] = useState(null);
   const [loadingGraph, setLoadingGraph] = useState(false);
+
+  const handleUpdated = (err) => {
+  if (err) {
+    setToast({ open: true, msg: `Error updating portfolio: ${err.message}`, severity: "error" });
+  } else {
+    setToast({ open: true, msg: "Portfolio updated successfully", severity: "success" });
+    fetchPortfolios();
+  }
+};
 
   // Paleta viva para líneas
   const lineColors = {
@@ -247,7 +277,36 @@ export default function Portfolios() {
   const portfolioTitle = (portfolios.find(p => p.portfolio_id === selected)?.name) || "My Portfolio";
 
   return (
-    <Container disableGutters>
+    // Option 2: Percentage with max-width
+    // Option 3: Responsive manual widths
+    <Container
+      maxWidth={false}
+      disableGutters
+      sx={{
+        backgroundColor: '#f5fff7',
+        backgroundImage: 'linear-gradient(to bottom, #ffffff, #f0fff5, #e8f8f0)',
+        pt: 2,
+        pb: 4,
+        px: { xs: 2, sm: 3, md: 4 }, // Increase horizontal padding for better visual spacing
+        margin: '0 auto', // Center the container
+        left: '50%',  // Center positioning
+        transform: 'translateX(-50%)', // Ensure perfect centering
+        position: 'relative', // Enable the transform
+        borderRadius: 2,
+        width: {
+          xs: '100%', // Full width on mobile
+          sm: '95%',  // 95% on small screens
+          md: '90%',  // 90% on medium screens
+          lg: '1500px' // Fixed width on large screens
+        },
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'stretch',
+      }}
+    >
+      {/* ===== Portfolio selection tabs ===== */}
       {loading ? (
         <Grid container justifyContent="center" spacing={2} sx={{ mb: 4 }}>
           {[1, 2, 3].map((n) => (
@@ -279,32 +338,34 @@ export default function Portfolios() {
 
           {/* Create / Delete */}
           <Grid item>
-            <CreatePortfolioButton userId={2} onCreated={handleCreated} />
-          </Grid>
-          <Grid item>
-            <Button
-              variant="contained"
-              color="secondary"
-              startIcon={<FolderDeleteIcon />}
-              sx={{
-                bgcolor: "#FA2323",
-                ":hover": { bgcolor: "#CD0404" },
-                transition: "transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease",
-                transform: "translateZ(0)",
-                willChange: "transform",
-                "&:hover": { transform: "translateY(-1px)" },
-                "&:active": { transform: "translateY(0px) scale(0.98)" }
-              }}
-              disabled={!selected}
-              onClick={() => {
-                if (window.confirm('Are you sure you want to delete this portfolio?')) {
-                  handleDelete(selected);
-                }
-              }}
-            >
-              Delete
-            </Button>
-          </Grid>
+  <CreatePortfolioButton userId={2} onCreated={handleCreated} />
+</Grid>
+<Grid item>
+  <ModifyPortfolioButton 
+    portfolio={selectedPortfolio} 
+    onUpdated={handleUpdated} 
+  />
+</Grid>
+<Grid item>
+  {/* Delete Portfolio Button */}
+  <Button
+    variant="contained"
+    sx={{
+      backgroundColor: "#E74C3C", // Softer red that matches theme better
+      color: "#FFFFFF",
+      // ...rest of the styling
+    }}
+    startIcon={<FolderDeleteIcon />}
+    disabled={!selected}
+    onClick={() => {
+      if (window.confirm('Are you sure you want to delete this portfolio?')) {
+        handleDelete(selected);
+      }
+    }}
+  >
+    Delete
+  </Button>
+</Grid>
         </Grid>
       )}
 
@@ -313,113 +374,139 @@ export default function Portfolios() {
         sx={{
           display: "grid",
           gap: 2,
-          gridTemplateColumns: { xs: "1fr", md: "5fr 7fr" },
+          gridTemplateColumns: { xs: "1fr", md: "4fr 8fr" }, // Adjust column ratio
           gridTemplateRows: { xs: "auto", md: "auto auto" },
           alignItems: "stretch",
+          borderRadius: 2,
+          padding: { xs: 1, sm: 2 }, // Reduce padding to maximize content space
+          backgroundColor: '#ffffff',
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+          transition: "all 0.3s ease",
+          width: '100%',
+          boxSizing: 'border-box',
+          "&:hover": {
+            boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+          }
         }}
       >
-        {/* LEFT-TOP: Portfolio card — SIN CAMBIOS */}
+        {/* LEFT-TOP: Portfolio card */}
         <Box sx={{ minWidth: 0, overflow: "hidden", gridColumn: "1", gridRow: { xs: "auto", md: "1" } }}>
           <Card
             sx={{
               p: 2,
-              bgcolor: "#00674F",
+              bgcolor: "#0B5D32",
               color: "#FFFFFF",
               minHeight: 280,
               width: "100%",
               maxWidth: "100%",
               overflow: "hidden",
               boxSizing: "border-box",
+              borderRadius: 2,
             }}
           >
-          {/* Header (green card) */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2,
-              pb: 1.5,
-              borderBottom: "1px dashed rgba(255,255,255,0.25)",
-              width: "100%",
-              maxWidth: "100%",
-              minWidth: 0,
-              overflow: "hidden",
-            }}
-          >
-            {/* Title with flexGrow:1 */}
-            <Tooltip title={portfolioTitle}>
-              <Typography
-                sx={{
-                  fontWeight: 800,
-                  fontSize: { xs: "1rem", sm: "1.3rem", md: "1.5rem" },
-                  color: "#BB77FF",
-                  textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
-                  lineHeight: 1.2,
-                  flexGrow: 1,           // expands to use available space
-                  minWidth: 0,
-                  whiteSpace: { xs: "normal", md: "nowrap" },
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                }}
-              >
-                {portfolioTitle}
-              </Typography>
-            </Tooltip>
+            {/* Header */}
+            <Box
+  sx={{
+    display: "flex",
+    flexDirection: "column", // Changed to column to stack title and description
+    gap: 0.5, // Small gap between title and description
+    pb: 1.5,
+    borderBottom: "1px dashed rgba(255,255,255,0.25)",
+    width: "100%",
+    maxWidth: "100%",
+    minWidth: 0,
+    overflow: "hidden",
+  }}
+>
+  <Box sx={{ 
+    display: "flex", 
+    alignItems: "center", 
+    justifyContent: "space-between",
+    width: "100%" 
+  }}>
+    <Tooltip title={portfolioTitle}>
+      <Typography
+        sx={{
+          fontWeight: 800,
+          fontSize: { xs: "1rem", sm: "1.3rem", md: "1.5rem" },
+          color: "#FFFFFF",
+          textShadow: "1px 1px 2px rgba(0,0,0,0.4)",
+          lineHeight: 1.2,
+          flexGrow: 1,
+          minWidth: 0,
+          whiteSpace: { xs: "normal", md: "nowrap" },
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {portfolioTitle}
+      </Typography>
+    </Tooltip>
 
-            {/* Action buttons */}
-            <Box sx={{ display: "flex", gap: 1, flexShrink: 0 }}>
-              {/* Buy (blue) */}
-              <CreateAssetButton
-                portfolioId={selected}
-                onCreated={() =>
-                  setToast({ open: true, msg: "Asset successfully purchased", severity: "success" })
-                }
-                buttonProps={{
-                  variant: "contained",
-                  size: isMobile ? "small" : "medium",
-                  sx: {
-                    bgcolor: "#1E88E5", // blue
-                    color: "white",
-                    ":hover": { bgcolor: "#1565C0" },
-                    transition: "transform 120ms ease, background-color 120ms ease",
-                    transform: "translateZ(0)",
-                    willChange: "transform",
-                    "&:hover": { transform: "translateY(-1px)" },
-                    "&:active": { transform: "translateY(0px) scale(0.98)" },
-                  },
-                }}
-              >
-                <CreateNewFolderIcon fontSize={isMobile ? "small" : "medium"} sx={{ mr: 0.5 }} />
-                Buy
-              </CreateAssetButton>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+      <CreateAssetButton
+        portfolioId={selected}
+        onCreated={handleAssetCreated}
+        buttonProps={{
+          variant: "contained",
+          color: "success",
+          size: isMobile ? "small" : "medium",
+          disabled: selected === null,
+          sx: {
+            borderRadius: 28,
+            transition: "transform 120ms ease",
+            transform: "translateZ(0)",
+            "&:hover": { transform: selected === null ? "none" : "translateY(-1px)" },
+            "&:active": { transform: selected === null ? "none" : "translateY(0px) scale(0.98)" },
+          },
+        }}
+      />
 
-              {/* Sell (red) */}
-              <DeleteAssetButton
-                portfolioId={selected}
-                onDeleted={() =>
-                  setToast({ open: true, msg: "Asset successfully sold", severity: "success" })
-                }
-                buttonProps={{
-                  variant: "contained",
-                  size: isMobile ? "small" : "medium",
-                  sx: {
-                    bgcolor: "#D32F2F",
-                    color: "white",
-                    ":hover": { bgcolor: "#9A0007" },
-                    transition: "transform 120ms ease, background-color 120ms ease",
-                    transform: "translateZ(0)",
-                    willChange: "transform",
-                    "&:hover": { transform: "translateY(-1px)" },
-                    "&:active": { transform: "translateY(0px) scale(0.98)" },
-                  },
-                }}
-              >
-                <FolderDeleteIcon fontSize={isMobile ? "small" : "medium"} sx={{ mr: 0.5 }} />
-                Sell
-              </DeleteAssetButton>
-            </Box>
-          </Box>
-
+      <DeleteAssetButton
+        portfolioId={selected}
+        onDeleted={handleAssetDeleted}
+        buttonProps={{
+          variant: "contained",
+          size: isMobile ? "small" : "medium",
+          disabled: selected === null,
+          sx: {
+            backgroundColor: "#4C86E4",
+            color: "#ffffff",
+            borderRadius: 28,
+            transition: "transform 120ms ease, background-color 0.2s ease",
+            transform: "translateZ(0)",
+            "&:hover": {
+              backgroundColor: "#3A75D3",
+              transform: selected === null ? "none" : "translateY(-1px)"
+            },
+            "&:active": {
+              backgroundColor: "#2964C2",
+              transform: selected === null ? "none" : "translateY(0px) scale(0.98)"
+            },
+          },
+        }}
+      />
+    </Box>
+  </Box>
+  
+  {/* Portfolio Description */}
+  {portfolioDescription && (
+    <Typography
+      sx={{
+        fontSize: { xs: "0.75rem", sm: "0.85rem" },
+        color: "rgba(255, 255, 255, 0.8)",
+        fontStyle: "italic",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        display: "-webkit-box",
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: "vertical",
+      }}
+    >
+      {portfolioDescription}
+    </Typography>
+  )}
+</Box>
 
             {/* Holdings + Transactions */}
             <Grid container>
@@ -429,7 +516,7 @@ export default function Portfolios() {
                     {selected ? (
                       <>
                         <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Current Holdings</Typography>
-                        <PortfolioHoldings portfolioId={selected} />
+<PortfolioHoldings portfolioId={selected} key={`holdings-${holdingsKey}`} />
 
                         <Box sx={{ mt: 4 }}>
                           <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>Transaction History</Typography>
@@ -448,28 +535,29 @@ export default function Portfolios() {
           </Card>
         </Box>
 
-        {/* RIGHT: Charts column (2 charts 50/50) */}
+        {/* RIGHT: Charts and StocksSidebar in horizontal layout */}
         <Box
           sx={{
             gridColumn: { xs: "1", md: "2" },
             gridRow: { xs: "auto", md: "1 / span 2" },
             minWidth: 0,
             overflow: "hidden",
+            display: "grid",
+            gridTemplateColumns: { xs: "1fr", md: "7fr 5fr" },
+            gap: 2
           }}
         >
-          <Grid
-            item
-            xs={12}
-            md={5}
+          {/* LEFT SIDE: Charts section */}
+          <Box
             sx={{
-              display: "grid",
+              display: "flex",
+              flexDirection: "column",
               gap: 2,
-              gridTemplateRows: { xs: "auto auto", md: "1fr 1fr" },
               minHeight: 0,
             }}
           >
             {/* Chart 1: Portfolio Performance (línea) */}
-            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
               <Box sx={{ pb: 1, borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
                 <Typography sx={{ fontWeight: 600 }}>Portfolio Performance</Typography>
               </Box>
@@ -499,7 +587,7 @@ export default function Portfolios() {
             </Card>
 
             {/* Chart 2: Holdings Breakdown (Doughnut por valor) */}
-            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0 }}>
+            <Card sx={{ p: 2, display: "flex", flexDirection: "column", minHeight: 0, flex: 1 }}>
               <Box sx={{ pb: 1, borderBottom: "1px solid rgba(0,0,0,0.06)" }}>
                 <Typography sx={{ fontWeight: 600 }}>Holdings Breakdown</Typography>
               </Box>
@@ -519,34 +607,36 @@ export default function Portfolios() {
                 )}
               </Box>
             </Card>
-          </Grid>
+          </Box>
 
-          <Grid
-            item
-            sx={{
-              display: "grid",
-              gap: 2,
-              gridTemplateRows: { xs: "auto auto", md: "1fr 1fr" },
-              minHeight: 0,
-            }}
-          >
-            {/* LEFT-BOTTOM: Stocks card */}
-            <Box sx={{ gridColumn: "1", gridRow: { xs: "auto", md: "2" }, minWidth: 0 }}>
-              <StocksSidebar />
-            </Box>
-          </Grid>
+          {/* RIGHT SIDE: StocksSidebar */}
+          <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+            <StocksSidebar />
+          </Box>
         </Box>
       </Box>
 
       <Snackbar
         open={toast.open}
-        autoHideDuration={6000}
-        onClose={() => setToast(prev => ({ ...prev, open: false }))}
+        autoHideDuration={4000}
+        onClose={() => setToast({ ...toast, open: false })}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        sx={{
+          position: 'fixed',
+          top: { xs: 16, sm: 24 },
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 9999,
+          '& .MuiPaper-root': {
+            borderRadius: 2,
+            boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+          }
+        }}
       >
         <Alert
-          onClose={() => setToast(prev => ({ ...prev, open: false }))}
+          onClose={() => setToast({ ...toast, open: false })}
           severity={toast.severity}
+          variant="filled"
           sx={{ width: '100%' }}
         >
           {toast.msg}

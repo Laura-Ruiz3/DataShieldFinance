@@ -4,7 +4,8 @@ import {
   TextField, Stack, Snackbar, Alert, CircularProgress,
   Tooltip, Box, Typography, Divider, Chip, IconButton, InputAdornment
 } from "@mui/material";
-import FolderDeleteIcon from "@mui/icons-material/FolderDelete";
+
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -151,7 +152,7 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
         setToast({ open: true, msg, severity: "error" });
         return;
       }
-      setToast({ open: true, msg: "Venta registrada", severity: "success" });
+      setToast({ open: true, msg: "Asset sold successfully", severity: "success" }); 
       onDeleted?.(data);
       setOpen(false);
       resetForm();
@@ -169,10 +170,10 @@ export default function DeleteAssetButton({ portfolioId, onDeleted, buttonProps,
 
   return (
     <>
-      <Tooltip title="Vender asset">
+      <Tooltip title="Sell asset">
         <span>
           <Button {...buttonProps} onClick={() => setOpen(true)}>
-            {children ?? <FolderDeleteIcon />}
+            {children ?? <MonetizationOnIcon />}
           </Button>
         </span>
       </Tooltip>

@@ -9,7 +9,8 @@ import {
   Paper,
   CircularProgress,
   Alert,
-  Typography
+  Typography,
+  Box
 } from '@mui/material';
 
 export default function PortfolioHoldings({ portfolioId }) {
@@ -51,64 +52,167 @@ export default function PortfolioHoldings({ portfolioId }) {
 
   if (loading) {
     return (
-      <TableContainer component={Paper}>
-        <div className="flex justify-center p-4">
-          <CircularProgress />
-        </div>
+      <TableContainer 
+        component={Paper}
+        sx={{ 
+          maxHeight: 300,
+          borderRadius: 2,
+          boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+          overflow: 'auto',
+          backgroundColor: '#ffffff',
+          p: 2
+        }}
+      >
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", p: 4 }}>
+          <CircularProgress sx={{ color: '#0B5D32' }} />
+        </Box>
       </TableContainer>
     );
   }
 
   if (error) {
-    return <Alert severity="error">{error}</Alert>;
+    return (
+      <Alert 
+        severity="error" 
+        sx={{ 
+          borderRadius: 2, 
+          mb: 2 
+        }}
+      >
+        {error}
+      </Alert>
+    );
   }
 
   return (
-    <>
-      {/*<Typography variant="h6" sx={{ mt: 4, mb: 2, fontWeight: 'bold' }}>Current Holdings</Typography>*/}
-      <TableContainer 
+    <TableContainer 
       component={Paper}
       sx={{ 
-        maxHeight: 300, // Set maximum height to enable vertical scrolling
-        overflow: 'auto' // Ensure scrollbars appear when content exceeds dimensions
+        maxHeight: 300,
+        borderRadius: 2,
+        boxShadow: "0 4px 20px rgba(0,0,0,0.05)",
+        overflow: 'auto',
+        backgroundColor: '#ffffff',
+        transition: "all 0.3s ease",
+        "&:hover": {
+          boxShadow: "0 8px 30px rgba(0,0,0,0.08)",
+        }
       }}
     >
       <Table size="small" aria-label="portfolio holdings table" stickyHeader>
         <TableHead>
-          <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-            <TableCell>Ticker</TableCell>
-            <TableCell>Name</TableCell>
-            <TableCell align="right">Quantity</TableCell>
-            <TableCell align="right">Price ($)</TableCell>
-            <TableCell align="right">Fees ($)</TableCell>
-            <TableCell align="right">Total Value ($)</TableCell>
+          <TableRow>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem',
+                '&:first-of-type': { borderTopLeftRadius: 8 },
+                '&:last-of-type': { borderTopRightRadius: 8 }
+              }}
+            >
+              Symbol
+            </TableCell>
+            <TableCell 
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Name
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Quantity
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Price ($)
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Fees ($)
+            </TableCell>
+            <TableCell 
+              align="right"
+              sx={{ 
+                backgroundColor: '#0B5D32',
+                color: '#ffffff',
+                fontWeight: 'bold',
+                fontSize: '0.875rem'
+              }}
+            >
+              Total Value ($)
+            </TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-            {holdings.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={6} align="center">No holdings found</TableCell>
-              </TableRow>
-            ) : (
-              holdings.map((holding) => (
-                <TableRow
-                  key={holding.asset_id}
-                  sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
+          {holdings.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={6} align="center">
+                <Typography sx={{ py: 2, color: 'text.secondary' }}>
+                  No holdings found
+                </Typography>
+              </TableCell>
+            </TableRow>
+          ) : (
+            holdings.map((holding) => (
+              <TableRow
+                key={holding.asset_id}
+                sx={{ 
+                  '&:last-child td, &:last-child th': { border: 0 },
+                  transition: "background-color 0.2s ease",
+                  '&:hover': { 
+                    backgroundColor: '#f0fff5'
+                  }
+                }}
+              >
+                <TableCell 
+                  component="th" 
+                  scope="row" 
+                  sx={{ 
+                    fontWeight: 'medium',
+                    color: '#0B5D32'
+                  }}
                 >
-                  <TableCell component="th" scope="row" sx={{ fontWeight: 'medium' }}>
-                    {holding.symbol}
-                  </TableCell>
-                  <TableCell>{holding.name}</TableCell>
-                  <TableCell align="right">{holding.quantity}</TableCell>
-                  <TableCell align="right">{Number(holding.price).toFixed(2)}</TableCell>
-                  <TableCell align="right">{Number(holding.fees).toFixed(2)}</TableCell>
-                  <TableCell align="right">{(Number(holding.quantity) * Number(holding.price)).toFixed(2)}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </>
+                  {holding.symbol}
+                </TableCell>
+                <TableCell>{holding.name}</TableCell>
+                <TableCell align="right">{holding.quantity}</TableCell>
+                <TableCell align="right">{Number(holding.price).toFixed(2)}</TableCell>
+                <TableCell align="right">{Number(holding.fees).toFixed(2)}</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 'medium' }}>
+                  {(Number(holding.quantity) * Number(holding.price)).toFixed(2)}
+                </TableCell>
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
   );
 }
