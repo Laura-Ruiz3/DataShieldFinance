@@ -1,24 +1,67 @@
+/**
+ * Performance Calculation Service
+ * 
+ * Provides functionality to calculate asset and portfolio performance metrics
+ * including PnL (Profit and Loss), market value, and OHLCV data.
+ * 
+ * @module services/performance
+ */
+
 const pool = require("../db");
 const axios = require("axios");
 
-// Helpers
+/**
+ * Check if a value is a finite number
+ * @param {any} v - Value to check
+ * @returns {boolean} True if value is a finite number
+ * @private
+ */
 const isFiniteNum = (v) => typeof v === "number" && Number.isFinite(v);
+
+/**
+ * Convert a value to a number or null if not valid
+ * @param {any} v - Value to convert
+ * @returns {number|null} Number or null
+ * @private
+ */
 const toNumOrNull = (v) => (isFiniteNum(v) ? Number(v) : null);
+
+/**
+ * Convert a value to a number or zero if not valid
+ * @param {any} v - Value to convert
+ * @returns {number} Number or zero
+ * @private
+ */
 const toNumOrZero = (v) => (isFiniteNum(v) ? Number(v) : 0);
+
+/**
+ * Convert a timestamp to ISO date format (YYYY-MM-DD)
+ * @param {string|number} ts - Timestamp (string format 'YYYY-MM-DD HH:mm:ss' or epoch ms/s)
+ * @returns {string|null} ISO date or null if invalid
+ * @private
+ */
 const toISODate = (ts) => {
-  // Espera 'YYYY-MM-DD HH:mm:ss'
+  // Handle format 'YYYY-MM-DD HH:mm:ss'
   if (typeof ts === "string") return ts.split(" ")[0];
-  // Si viniera epoch ms/seg:
+  
+  // Handle epoch milliseconds/seconds
   try {
     const d = new Date(Number(ts));
     if (!isNaN(d)) return d.toISOString().split("T")[0];
   } catch (_) {}
+  
   return null;
 };
 
-// PnL por asset
+/**
+ * Calculate performance metrics for a specific asset in a portfolio
+ * 
+ * @param {number} portfolioId - Portfolio ID
+ * @param {number} assetId - Asset ID
+ * @returns {Promise<Object>} Asset performance data including history or error
+ */
 async function getAssetPerformance(portfolioId, assetId) {
-  // 1) Asset y transacciones
+  // 1. Get asset and transaction data
   const [[asset]] = await pool.query(
     "SELECT * FROM assets WHERE asset_id = ?",
     [assetId]
@@ -32,7 +75,7 @@ async function getAssetPerformance(portfolioId, assetId) {
     return { error: "No transactions found for asset" };
   }
 
-  // 2) API de precios (estructura con price_data)
+  // 2. Get price data from API
   let priceData;
   try {
     const resp = await axios.get(
@@ -47,7 +90,7 @@ async function getAssetPerformance(portfolioId, assetId) {
     return { error: `Price API error for ${asset?.symbol || assetId}: ${e.message}` };
   }
 
-  // 3) Validar arrays
+  // 3. Validate OHLCV arrays
   const { low, open, high, close, volume, timestamp } = priceData;
   const arraysOk =
     Array.isArray(timestamp) &&
@@ -61,7 +104,7 @@ async function getAssetPerformance(portfolioId, assetId) {
     return { error: `Malformed OHLCV arrays for ${asset.symbol}` };
   }
 
-  // Cortar a la menor longitud si hay desfases
+  // Use the minimum length in case arrays are mismatched
   const len = Math.min(
     timestamp.length,
     open.length,
@@ -70,22 +113,23 @@ async function getAssetPerformance(portfolioId, assetId) {
     close.length,
     volume.length
   );
+  
   if (len === 0) {
     return { error: `Empty price series for ${asset.symbol}` };
   }
 
-  // 4) PnL barra a barra (sanear NaN / nulos)
-  let position = 0;
-  let cashFlow = 0;
+  // 4. Calculate PnL (Profit and Loss) for each bar
+  let position = 0;    // Current position size
+  let cashFlow = 0;    // Net cash flow from transactions
 
   const history = [];
   for (let i = 0; i < len; i++) {
     const ts = timestamp[i];
     const date = toISODate(ts);
-    if (!date) continue; // si el timestamp viene roto, se salta
-
-    // Aplicar transacciones del mismo día
-    // Nota: si tus transacciones están en TZ local, ajusta aquí.
+    if (!date) continue; // Skip invalid timestamps
+    
+    // Apply same-day transactions to position and cash flow
+    // Note: If transactions are in local timezone, adjust comparison here
     for (const tx of transactions) {
       const txDate = tx.date.toISOString().split("T")[0];
       if (txDate === date) {
@@ -101,12 +145,14 @@ async function getAssetPerformance(portfolioId, assetId) {
       }
     }
 
+    // Get normalized OHLCV values
     const o = toNumOrNull(open[i]);
     const h = toNumOrNull(high[i]);
     const l = toNumOrNull(low[i]);
     const c = toNumOrNull(close[i]);
     const v = toNumOrZero(volume[i]);
 
+    // Calculate market value and PnL
     let marketValue = 0;
     let pnl = cashFlow;
 
@@ -134,8 +180,16 @@ async function getAssetPerformance(portfolioId, assetId) {
   };
 }
 
-// Agregado de portafolio por día
+/**
+ * Calculate performance metrics for an entire portfolio
+ * 
+ * Aggregates performance across all assets in the portfolio
+ * 
+ * @param {number} portfolioId - Portfolio ID
+ * @returns {Promise<Object>} Portfolio performance data including history
+ */
 async function getPortfolioPerformance(portfolioId) {
+  // Get all assets in the portfolio that have transactions
   const [assets] = await pool.query(
     `SELECT DISTINCT a.asset_id, a.symbol
      FROM transactions t
@@ -144,14 +198,18 @@ async function getPortfolioPerformance(portfolioId) {
     [portfolioId]
   );
 
+  // Group performance data by date
   const perDay = Object.create(null);
 
+  // Process each asset's performance data
   for (const asset of assets) {
     const result = await getAssetPerformance(portfolioId, asset.asset_id);
     if (!result || result.error || !Array.isArray(result.history)) continue;
 
+    // Aggregate asset data into the portfolio data by date
     for (const h of result.history) {
       if (!perDay[h.date]) {
+        // Initialize daily data if this is the first asset for this date
         perDay[h.date] = {
           open: null,
           high: -Infinity,
@@ -164,31 +222,34 @@ async function getPortfolioPerformance(portfolioId) {
       }
       const acc = perDay[h.date];
 
-      // open: tomar el primero válido del día
+      // Use first valid open price for the day
       if (acc.open === null && isFiniteNum(h.ohlcv.open)) {
         acc.open = h.ohlcv.open;
       }
-      // high / low: max/min válidos
+      
+      // Use max/min for high/low values
       if (isFiniteNum(h.ohlcv.high)) acc.high = Math.max(acc.high, h.ohlcv.high);
       if (isFiniteNum(h.ohlcv.low)) acc.low = Math.min(acc.low, h.ohlcv.low);
 
-      // close: usar el último válido encontrado
+      // Use last valid close price
       if (isFiniteNum(h.ohlcv.close)) acc.close = h.ohlcv.close;
 
-      // volumen
+      // Sum volumes
       if (isFiniteNum(h.ohlcv.volume)) acc.volume += h.ohlcv.volume;
 
-      // PnL y MV: sumar si hay valor numérico
+      // Sum PnL and market values
       if (isFiniteNum(h.pnl)) acc.pnl += h.pnl;
       if (isFiniteNum(h.marketValue)) acc.marketValue += h.marketValue;
     }
   }
 
+  // Convert object to array and normalize data
   const history = Object.entries(perDay)
     .map(([date, v]) => ({
       date,
       ohlcv: {
         open: v.open,
+        // Reset extreme values to null if no valid data was found
         high: v.high === -Infinity ? null : v.high,
         low: v.low === Infinity ? null : v.low,
         close: v.close,
@@ -197,9 +258,16 @@ async function getPortfolioPerformance(portfolioId) {
       pnl: v.pnl,
       marketValue: v.marketValue,
     }))
+    // Sort by date chronologically
     .sort((a, b) => new Date(a.date) - new Date(b.date));
 
   return { portfolioId, history };
 }
 
-module.exports = { getAssetPerformance, getPortfolioPerformance };
+/**
+ * @exports Performance calculation methods
+ */
+module.exports = { 
+  getAssetPerformance, 
+  getPortfolioPerformance 
+};

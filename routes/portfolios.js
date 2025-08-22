@@ -1,14 +1,23 @@
+/**
+ * Express router for portfolio-related endpoints
+ * @module routes/portfolios
+ */
+
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
-const { getPortfolioPerformance } = require("../services/performance");
 const { body, param } = require("express-validator");
 const { runValidations } = require("../src/middlewares/validate");
 
-// 1. Consultar portafolios de un usuario
-// GET /portfolios/user/:userId
+/**
+ * @route GET /api/portfolios/user/:userId
+ * @description Get all portfolios for a specific user
+ * @param {number} userId - User ID
+ * @returns {Array} User's portfolios sorted by creation date (newest first)
+ * @access Public
+ */
 router.get("/user/:userId",
-  runValidations([ param("userId").isInt({ min: 1 }).withMessage("userId inválido") ]),
+  runValidations([param("userId").isInt({ min: 1 }).withMessage("userId inválido")]),
   async (req, res, next) => {
     try {
       const { userId } = req.params;
@@ -22,8 +31,17 @@ router.get("/user/:userId",
   }
 );
 
-// 4. Agregar portafolio nuevo
-// POST /portfolios
+/**
+ * @route POST /api/portfolios
+ * @description Create a new portfolio for a user
+ * @param {Object} req.body - Portfolio details
+ * @param {number} req.body.user_id - User ID
+ * @param {string} req.body.name - Portfolio name (1-100 characters)
+ * @param {string} [req.body.description] - Optional portfolio description (max 255 characters)
+ * @returns {Object} Object containing the ID of the created portfolio
+ * @throws {409} If user already has a portfolio with the same name
+ * @access Public
+ */
 router.post("/",
   runValidations([
     body("user_id").isInt({ min: 1 }).withMessage("user_id inválido"),
@@ -58,13 +76,15 @@ router.post("/",
   }
 );
 
-
-
-
-// 7b. Performance de un portafolio
-// GET /portfolios/:portfolioId/performance (sin cambios, solo valida)
+/**
+ * @route GET /api/portfolios/:portfolioId/performance
+ * @description Get performance metrics for a specific portfolio
+ * @param {number} portfolioId - Portfolio ID
+ * @returns {Object} Portfolio performance data
+ * @access Public
+ */
 router.get("/:portfolioId/performance",
-  runValidations([ param("portfolioId").isInt({ min: 1 }).withMessage("portfolioId inválido") ]),
+  runValidations([param("portfolioId").isInt({ min: 1 }).withMessage("portfolioId inválido")]),
   async (req, res, next) => {
     try {
       const { getPortfolioPerformance } = require("../services/performance");
@@ -74,6 +94,13 @@ router.get("/:portfolioId/performance",
   }
 );
 
+/**
+ * @route GET /api/portfolios/:portfolioId/holdings
+ * @description Get current holdings in a specific portfolio
+ * @param {number} portfolioId - Portfolio ID
+ * @returns {Array} List of assets currently held in the portfolio with quantity, latest price, and fees
+ * @access Public
+ */
 router.get("/:portfolioId/holdings", async (req, res) => {
   try {
     const [rows] = await pool.query(`
@@ -108,7 +135,7 @@ router.get("/:portfolioId/holdings", async (req, res) => {
       ORDER BY 
         a.symbol
     `, [req.params.portfolioId, req.params.portfolioId, req.params.portfolioId]);
-    
+
     res.json(rows);
   } catch (err) {
     console.error("Error fetching holdings:", err);
@@ -116,21 +143,28 @@ router.get("/:portfolioId/holdings", async (req, res) => {
   }
 });
 
-// Add this to routes/portfolios.js if it doesn't already exist
+/**
+ * @route DELETE /api/portfolios/user/:userId/portfolio/:portfolioId
+ * @description Delete a specific portfolio belonging to a user
+ * @param {number} userId - User ID
+ * @param {number} portfolioId - Portfolio ID
+ * @returns {Object} Success message if deleted
+ * @throws {404} If portfolio not found
+ * @access Public
+ */
 router.delete("/user/:userId/portfolio/:portfolioId", async (req, res) => {
   try {
     const { userId, portfolioId } = req.params;
-    
-    // Delete the portfolio
+
     const result = await pool.query(
       "DELETE FROM portfolios WHERE user_id = ? AND portfolio_id = ?",
       [userId, portfolioId]
     );
-    
+
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Portfolio not found" });
     }
-    
+
     res.json({ success: true, message: "Portfolio deleted successfully" });
   } catch (err) {
     console.error(err);
@@ -138,13 +172,16 @@ router.delete("/user/:userId/portfolio/:portfolioId", async (req, res) => {
   }
 });
 
-// GET /portfolios/:portfolioId/holdings/value-breakdown
-// Devuelve: total_value_usd y cada holding con value_usd y weight (%)
+/**
+ * @route GET /api/portfolios/:portfolioId/holdings/value-breakdown
+ * @description Get portfolio holdings with values, weights, and total portfolio value
+ * @param {number} portfolioId - Portfolio ID
+ * @returns {Object} Object containing portfolio total value and holdings with individual values and allocation weights
+ * @access Public
+ */
 router.get("/:portfolioId/holdings/value-breakdown", async (req, res, next) => {
   try {
     const { portfolioId } = req.params;
-
-    // Cantidad neta (compras - ventas) + último precio de compra para cada asset
     const [rows] = await pool.query(
       `
       SELECT 
@@ -181,11 +218,10 @@ router.get("/:portfolioId/holdings/value-breakdown", async (req, res, next) => {
       [portfolioId, portfolioId]
     );
 
-    // Calcular valor y pesos
     const enriched = rows.map(r => {
-      const qty   = Number(r.quantity ?? 0);
+      const qty = Number(r.quantity ?? 0);
       const price = Number(r.last_buy_price ?? 0);
-      const value = qty * price;  // << usa último precio de compra (sustituible por precio de mercado)
+      const value = qty * price;
       return {
         asset_id: r.asset_id,
         symbol: r.symbol,
@@ -214,4 +250,8 @@ router.get("/:portfolioId/holdings/value-breakdown", async (req, res, next) => {
 });
 
 
+/**
+ * Portfolio router
+ * @exports router
+ */
 module.exports = router;
